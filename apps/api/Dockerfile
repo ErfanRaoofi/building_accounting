@@ -15,9 +15,9 @@ FROM node:26.3.1-bookworm-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV API_HOST=0.0.0.0
-ENV API_PORT=3000
-ENV DATABASE_URL="postgresql://postgres:postgres@localhost:5432/mehr_accounting?schema=public"
-ENV DIRECT_URL="postgresql://postgres:postgres@localhost:5432/mehr_accounting?schema=public"
+ENV API_PORT=5001
+ENV DATABASE_URL="postgresql://postgres:postgres@localhost:5432/building_accounting?schema=public"
+ENV DIRECT_URL="postgresql://postgres:postgres@localhost:5432/building_accounting?schema=public"
 RUN apt-get update \
   && apt-get install -y --no-install-recommends openssl ca-certificates postgresql-client \
   && rm -rf /var/lib/apt/lists/*
@@ -32,7 +32,7 @@ RUN sed -i 's/\r$//' docker-entrypoint.sh \
   && mkdir -p /app/uploads/logos /app/data/backups \
   && chown -R node:node /app
 # Run as root so mounted volumes (uploads/backups) are writable; entrypoint chowns them.
-EXPOSE 3000
+EXPOSE 5001
 HEALTHCHECK --interval=15s --timeout=5s --start-period=90s --retries=12 \
-  CMD node -e "fetch('http://127.0.0.1:3000/api/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+  CMD node -e "fetch('http://127.0.0.1:5001/api/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 ENTRYPOINT ["./docker-entrypoint.sh"]
