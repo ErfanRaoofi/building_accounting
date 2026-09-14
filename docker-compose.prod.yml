@@ -3,7 +3,12 @@
 #
 # یک‌بار روی سرور: docker network create proxy-network
 # NPM را به همان شبکه وصل کن.
-# NPM Proxy Host: frontend / 4001 / http
+#
+# مهم: روی proxy-network نام frontend با استک hokm تداخل دارد.
+# در NPM حتماً از نام یکتا استفاده کن:
+#   Scheme               = http
+#   Forward Hostname/IP  = building-accounting-frontend
+#   Forward Port         = 4001
 #
 # DB_PASSWORD فقط حروف و عدد (بدون @ : / #)
 
@@ -27,6 +32,7 @@ services:
 
   backend:
     image: ${DOCKERHUB_USERNAME}/building-accounting-api:${IMAGE_TAG_BACKEND:-latest}
+    container_name: building-accounting-backend
     restart: unless-stopped
     ports:
       - '${BACKEND_PORT:-5001}:5001'
@@ -45,19 +51,24 @@ services:
       postgres:
         condition: service_healthy
     networks:
-      - app-network
-      - proxy-network
+      app-network:
+      proxy-network:
+        aliases:
+          - building-accounting-backend
 
   frontend:
     image: ${DOCKERHUB_USERNAME}/building-accounting-web:${IMAGE_TAG_FRONTEND:-latest}
+    container_name: building-accounting-frontend
     restart: unless-stopped
     ports:
       - '${FRONTEND_PORT:-4001}:4001'
     depends_on:
       - backend
     networks:
-      - app-network
-      - proxy-network
+      app-network:
+      proxy-network:
+        aliases:
+          - building-accounting-frontend
 
 volumes:
   pgdata:
