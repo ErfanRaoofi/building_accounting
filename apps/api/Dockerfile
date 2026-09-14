@@ -1,4 +1,4 @@
-FROM node:22-bookworm-slim AS build
+FROM node:26.3.1-bookworm-slim AS build
 WORKDIR /app
 ENV NX_DAEMON=false
 ENV CI=true
@@ -11,7 +11,7 @@ COPY apps/api ./apps/api
 RUN npx prisma generate --schema apps/api/prisma/schema.prisma
 RUN npx nx build api
 
-FROM node:22-bookworm-slim AS runner
+FROM node:26.3.1-bookworm-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV API_HOST=0.0.0.0

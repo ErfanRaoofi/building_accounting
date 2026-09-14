@@ -1,4 +1,4 @@
-FROM node:22-bookworm-slim AS build
+FROM node:26.3.1-bookworm-slim AS build
 WORKDIR /app
 ENV NX_DAEMON=false
 ENV CI=true
