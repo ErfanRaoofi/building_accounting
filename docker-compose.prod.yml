@@ -20,7 +20,7 @@ services:
       retries: 10
 
   api:
-    image: ${DOCKERHUB_USERNAME}/mehr-api:latest
+    image: ${DOCKERHUB_USERNAME}/building-accounting-api:latest
     pull_policy: always
     restart: unless-stopped
     depends_on:
@@ -38,7 +38,7 @@ services:
       - mehr_backups:/app/data/backups
 
   web:
-    image: ${DOCKERHUB_USERNAME}/mehr-web:latest
+    image: ${DOCKERHUB_USERNAME}/building-accounting-web:latest
     pull_policy: always
     restart: unless-stopped
     depends_on:

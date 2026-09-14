@@ -36,10 +36,10 @@ jobs:
           file: apps/api/Dockerfile
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/mehr-api:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/mehr-api:${{ steps.meta.outputs.sha }}
-          cache-from: type=gha,scope=mehr-api
-          cache-to: type=gha,mode=max,scope=mehr-api
+            ${{ secrets.DOCKERHUB_USERNAME }}/building-accounting-api:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/building-accounting-api:${{ steps.meta.outputs.sha }}
+          cache-from: type=gha,scope=building-accounting-api
+          cache-to: type=gha,mode=max,scope=building-accounting-api
 
   publish-web:
     runs-on: ubuntu-latest
@@ -67,10 +67,10 @@ jobs:
           file: apps/web/Dockerfile
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/mehr-web:latest
-            ${{ secrets.DOCKERHUB_USERNAME }}/mehr-web:${{ steps.meta.outputs.sha }}
-          cache-from: type=gha,scope=mehr-web
-          cache-to: type=gha,mode=max,scope=mehr-web
+            ${{ secrets.DOCKERHUB_USERNAME }}/building-accounting-web:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/building-accounting-web:${{ steps.meta.outputs.sha }}
+          cache-from: type=gha,scope=building-accounting-web
+          cache-to: type=gha,mode=max,scope=building-accounting-web
 
   notify-portainer:
     needs: [publish-api, publish-web]
