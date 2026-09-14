@@ -7,22 +7,25 @@ if [ "$(id -u)" = "0" ]; then
 fi
 
 SCHEMA="./prisma/schema.prisma"
+FIX_SQL="./prisma/fix-failed-roles-migration.sql"
+FAILED_MIGRATION="20260914093000_user_roles_signup"
 
 run_migrate() {
   npx prisma migrate deploy --schema "$SCHEMA"
 }
 
-repair_failed_roles_migration() {
-  echo "Attempting repair for failed migration 20260914093000_user_roles_signup..."
-  if [ -f ./prisma/fix-failed-roles-migration.sql ]; then
-    npx prisma db execute --schema "$SCHEMA" --file ./prisma/fix-failed-roles-migration.sql || true
+heal_schema() {
+  echo "Healing schema (safe after restore of older dumps)..."
+  if [ -f "$FIX_SQL" ]; then
+    npx prisma db execute --schema "$SCHEMA" --file "$FIX_SQL" || true
   fi
-  npx prisma migrate resolve --applied 20260914093000_user_roles_signup --schema "$SCHEMA" || true
+  npx prisma migrate resolve --applied "$FAILED_MIGRATION" --schema "$SCHEMA" || true
 }
 
+# First try normal migrate; on failure (e.g. P3009) heal then retry.
 if ! run_migrate; then
-  echo "prisma migrate deploy failed; checking for known failed migration..."
-  repair_failed_roles_migration
+  echo "migrate deploy failed; running heal + retry..."
+  heal_schema
   run_migrate
 fi
 

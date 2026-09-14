@@ -113,3 +113,12 @@ DO $$ BEGIN
     FOREIGN KEY ("reviewedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
+
+-- Clear failed migration lock so migrate deploy / app start can continue
+UPDATE "_prisma_migrations"
+SET
+  finished_at = COALESCE(finished_at, NOW()),
+  logs = NULL,
+  rolled_back_at = NULL,
+  applied_steps_count = GREATEST(COALESCE(applied_steps_count, 0), 1)
+WHERE migration_name = '20260914093000_user_roles_signup';

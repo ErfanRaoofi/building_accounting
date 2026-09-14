@@ -13,7 +13,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { toJalali } from '../common/jalali';
 import { paginateQuery, type Pagination } from '../common/pagination';
 import { LocalBackupSink, type BackupSink } from './backup-sink';
-import { parseDatabaseUrl, pgTool, runMigrateDeploy, runPg } from './pg';
+import { parseDatabaseUrl, pgTool, repairSchemaAfterRestore, runPg } from './pg';
 import { ensureBackupDirs, MAX_BACKUP_BYTES } from './paths';
 
 const SETTINGS_ID = 'default';
@@ -204,16 +204,19 @@ export class BackupsService implements OnModuleInit {
         await this.prisma.$connect();
       }
 
-      // Older dumps may lack newer columns (e.g. BuildingAccess.roles)
-      const migrate = await runMigrateDeploy();
-      if (migrate.code !== 0) {
+      // Old dumps often bring broken / outdated schema + failed migration rows.
+      // Always heal to current app schema after restore.
+      const repair = await repairSchemaAfterRestore();
+      if (repair.deploy.code !== 0) {
         throw new BadRequestException(
-          (migrate.stderr || migrate.stdout).trim().slice(-2000) || 'اعمال مایگریشن بعد از بازیابی ناموفق بود',
+          (repair.deploy.stderr || repair.deploy.stdout || repair.fix.stderr || repair.resolve.stderr)
+            .trim()
+            .slice(-2000) || 'تعمیر اسکیما بعد از بازیابی ناموفق بود',
         );
       }
 
       const users = await this.prisma.user.count();
-      return { ok: true, users };
+      return { ok: true, users, repaired: true };
     });
   }
 

@@ -67,5 +67,33 @@ export function runPg(bin: string, args: string[], password: string) {
 }
 
 export function runMigrateDeploy() {
-  return runPg('npx', ['prisma', 'migrate', 'deploy', '--schema', './prisma/schema.prisma'], process.env.PGPASSWORD || '');
+  return runPg('npx', ['prisma', 'migrate', 'deploy', '--schema', './prisma/schema.prisma'], '');
+}
+
+export function runMigrateResolveApplied(name: string) {
+  return runPg(
+    'npx',
+    ['prisma', 'migrate', 'resolve', '--applied', name, '--schema', './prisma/schema.prisma'],
+    '',
+  );
+}
+
+export function runFixRolesMigrationSql() {
+  const file = join(process.cwd(), 'prisma', 'fix-failed-roles-migration.sql');
+  if (!existsSync(file)) {
+    return Promise.resolve({ code: 0, stderr: '', stdout: 'skip' });
+  }
+  return runPg(
+    'npx',
+    ['prisma', 'db', 'execute', '--schema', './prisma/schema.prisma', '--file', file],
+    '',
+  );
+}
+
+/** Heal schema after restoring an older / partial dump so the app can boot. */
+export async function repairSchemaAfterRestore() {
+  const fix = await runFixRolesMigrationSql();
+  const resolve = await runMigrateResolveApplied('20260914093000_user_roles_signup');
+  const deploy = await runMigrateDeploy();
+  return { fix, resolve, deploy };
 }
