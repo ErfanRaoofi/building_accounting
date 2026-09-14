@@ -47,5 +47,6 @@ Thumbs.db
 .angular
 .env
 .env.prod
+certs/
 uploads
 data/backups

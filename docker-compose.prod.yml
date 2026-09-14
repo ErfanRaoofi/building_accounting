@@ -1,50 +1,56 @@
-# Portainer stack: set DOCKERHUB_USERNAME, POSTGRES_PASSWORD, JWT_SECRET.
-# Optional: WEB_PORT (default 8080), JWT_EXPIRES_IN (default 7d).
-# Use an alphanumeric POSTGRES_PASSWORD (avoid @ : / # in the URL).
+# Portainer stack — TLS/routing via Nginx Proxy Manager (same pattern as hokm).
 #
-# Shared network for Nginx Proxy Manager:
-#   docker network create proxy
-# Attach the same external network named "proxy" to your NPM container/stack.
-# In NPM Proxy Host:
-#   Forward Hostname = building-accounting-web
-#   Forward Port = 80
-#   Scheme = http
+# One-time on server:
+#   docker network create proxy-network
+# Join the NPM container to PROXY_NETWORK (default: proxy-network).
+#
+# NPM Proxy Host (Docker DNS — like hokm):
+#   Scheme               = http
+#   Forward Hostname/IP  = frontend
+#   Forward Port         = 4000
+#
+# DB password must be alphanumeric (avoid @ : / # in DATABASE_URL).
 
 services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: building_accounting
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME:-building_accounting}
     volumes:
       - building_accounting_pg_data:/var/lib/postgresql/data
+    networks:
+      - app-network
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres -d building_accounting']
-      interval: 10s
+      test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 5s
       timeout: 5s
       retries: 10
-    networks:
-      - internal
 
-  api:
-    image: ${DOCKERHUB_USERNAME}/building-accounting-api:latest
+  backend:
+    image: ${DOCKERHUB_USERNAME}/building-accounting-api:${IMAGE_TAG_BACKEND:-latest}
     pull_policy: always
     restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
+    ports:
+      - '${BACKEND_PORT:-5000}:3000'
     environment:
       API_HOST: 0.0.0.0
       API_PORT: '3000'
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/building_accounting?schema=public
-      DIRECT_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/building_accounting?schema=public
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-building_accounting}?schema=public
+      DIRECT_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-building_accounting}?schema=public
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
     volumes:
       - building_accounting_uploads:/app/uploads
       - building_accounting_backups:/app/data/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+      - proxy-network
     healthcheck:
       test:
         [
@@ -57,23 +63,18 @@ services:
       timeout: 5s
       start_period: 90s
       retries: 12
-    networks:
-      - internal
 
-  web:
-    image: ${DOCKERHUB_USERNAME}/building-accounting-web:latest
-    container_name: building-accounting-web
+  frontend:
+    image: ${DOCKERHUB_USERNAME}/building-accounting-web:${IMAGE_TAG_FRONTEND:-latest}
     pull_policy: always
     restart: unless-stopped
-    depends_on:
-      - api
     ports:
-      - '${WEB_PORT:-8080}:80'
+      - '${FRONTEND_PORT:-4000}:4000'
+    depends_on:
+      - backend
     networks:
-      internal:
-      proxy:
-        aliases:
-          - building-accounting-web
+      - app-network
+      - proxy-network
 
 volumes:
   building_accounting_pg_data:
@@ -81,6 +82,8 @@ volumes:
   building_accounting_backups:
 
 networks:
-  internal:
-  proxy:
+  app-network:
+    driver: bridge
+  proxy-network:
     external: true
+    name: ${PROXY_NETWORK:-proxy-network}

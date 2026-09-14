@@ -14,6 +14,6 @@ RUN npx nx build web --configuration=production
 FROM nginx:1.27-alpine
 COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist/apps/web/browser /usr/share/nginx/html
-EXPOSE 80
+EXPOSE 4000
 HEALTHCHECK --interval=15s --timeout=5s --retries=5 \
-  CMD wget -qO- http://127.0.0.1/ >/dev/null || exit 1
+  CMD wget -qO- http://127.0.0.1:4000/ >/dev/null || exit 1
