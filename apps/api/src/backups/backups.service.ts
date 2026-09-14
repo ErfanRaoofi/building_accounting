@@ -148,6 +148,24 @@ export class BackupsService implements OnModuleInit {
     const row = await this.getReady(id);
     return this.withLock(async () => {
       const db = parseDatabaseUrl();
+      const dumpPath = this.sink.pathFor(row.id);
+      if (!existsSync(dumpPath)) {
+        throw new BadRequestException('فایل بک‌آپ روی دیسک یافت نشد (volume بک‌آپ را چک کنید)');
+      }
+
+      // Drop other sessions so --clean can replace objects
+      try {
+        await this.prisma.$executeRawUnsafe(`
+          SELECT pg_terminate_backend(pid)
+          FROM pg_stat_activity
+          WHERE datname = current_database()
+            AND pid <> pg_backend_pid()
+            AND backend_type = 'client backend'
+        `);
+      } catch {
+        // ignore if terminate is not permitted
+      }
+
       await this.prisma.$disconnect();
       try {
         const result = await runPg(
@@ -157,6 +175,7 @@ export class BackupsService implements OnModuleInit {
             '--if-exists',
             '--no-owner',
             '--no-acl',
+            '--verbose',
             '-h',
             db.host,
             '-p',
@@ -165,17 +184,28 @@ export class BackupsService implements OnModuleInit {
             db.user,
             '-d',
             db.database,
-            this.sink.pathFor(row.id),
+            dumpPath,
           ],
           db.password,
         );
-        if (result.code > 1) {
-          throw new BadRequestException(result.stderr.trim() || 'بازیابی ناموفق بود');
+        // pg_restore: 0 = ok, 1 = warnings, >=2 = fatal
+        if (result.code >= 2) {
+          throw new BadRequestException(
+            result.stderr.trim().slice(-2000) || 'بازیابی ناموفق بود (pg_restore)',
+          );
+        }
+        const fatal = result.stderr
+          .split('\n')
+          .filter((line) => /ERROR:/i.test(line) && !/does not exist/i.test(line));
+        if (fatal.length) {
+          throw new BadRequestException(fatal.slice(-10).join('\n'));
         }
       } finally {
         await this.prisma.$connect();
       }
-      return { ok: true };
+
+      const users = await this.prisma.user.count();
+      return { ok: true, users };
     });
   }
 

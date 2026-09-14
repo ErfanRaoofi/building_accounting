@@ -178,10 +178,14 @@ export class Backups {
     if (!row || !this.restoreAck() || this.restoring()) {
       return;
     }
-    withBusy(this.restoring, this.http.post(`/api/backups/${row.id}/restore`, { confirm: 'RESTORE' })).subscribe({
-      next: () => {
+    withBusy(this.restoring, this.http.post<{ ok: boolean; users?: number }>(`/api/backups/${row.id}/restore`, { confirm: 'RESTORE' })).subscribe({
+      next: (res) => {
         this.restoreOpen.set(false);
-        this.toast.show('بازیابی انجام شد. صفحه را تازه‌سازی کنید.');
+        this.toast.show(`بازیابی انجام شد${res.users != null ? ` (${res.users} کاربر)` : ''}. در حال بارگذاری مجدد…`);
+        setTimeout(() => {
+          localStorage.clear();
+          location.href = '/login';
+        }, 800);
       },
       error: (err) => this.toast.show(err.error?.message || 'بازیابی ناموفق بود'),
     });
