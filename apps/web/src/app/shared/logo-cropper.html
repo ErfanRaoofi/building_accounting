@@ -1,0 +1,72 @@
+<input
+  #file
+  class="hidden"
+  type="file"
+  accept="image/png,image/jpeg,image/webp,image/*"
+  (change)="pick($any($event.target).files?.[0]); $any($event.target).value = ''"
+/>
+
+@if (open()) {
+  <button class="ui-overlay z-[75]" type="button" (click)="close()" aria-label="بستن" animate.enter="ui-overlay-enter" animate.leave="ui-overlay-leave"></button>
+  <div class="pointer-events-none fixed inset-0 z-[76] flex items-end justify-center sm:items-center sm:p-6 print:hidden">
+    <div
+      class="pointer-events-auto w-full max-w-md rounded-t-3xl bg-white shadow-2xl sm:rounded-3xl"
+      role="dialog"
+      aria-modal="true"
+      aria-label="برش لوگو"
+      animate.enter="ui-modal-enter"
+      animate.leave="ui-modal-leave"
+    >
+      <header class="flex items-start justify-between gap-3 border-b border-slate-100 px-5 py-4">
+        <div>
+          <h2 class="text-lg font-bold text-slate-900">برش لوگو</h2>
+          <p class="ui-muted mt-1">مربع ۵۱۲×۵۱۲ پیکسل، بدون افت کیفیت</p>
+        </div>
+        <button class="ui-btn-ghost h-10 w-10 shrink-0 px-0" type="button" (click)="close()" aria-label="بستن">✕</button>
+      </header>
+      <div class="space-y-4 px-5 py-4">
+        <div
+          class="relative mx-auto h-[280px] w-[280px] cursor-grab touch-none overflow-hidden rounded-2xl bg-slate-900 active:cursor-grabbing"
+          (pointerdown)="startPan($event)"
+          (pointermove)="movePan($event)"
+          (pointerup)="endPan()"
+          (pointercancel)="endPan()"
+          (wheel)="onWheel($event)"
+        >
+          @if (src()) {
+            <img
+              class="absolute max-w-none select-none"
+              [src]="src()"
+              alt=""
+              draggable="false"
+              [style.left.px]="originX()"
+              [style.top.px]="originY()"
+              [style.width.px]="dispW()"
+              [style.height.px]="dispH()"
+              (load)="onImageLoad($event)"
+            />
+          }
+          <div class="pointer-events-none absolute inset-0 rounded-2xl ring-2 ring-white/70"></div>
+        </div>
+        <label class="ui-field">
+          <span class="ui-label">بزرگنمایی</span>
+          <input class="w-full accent-brand-700" type="range" min="1" max="4" step="0.01" dir="ltr" [value]="zoom()" (input)="setZoom($any($event.target).value)" />
+        </label>
+        @if (error()) {
+          <p class="text-sm font-medium text-rose-700">{{ error() }}</p>
+        }
+        <p class="text-xs text-slate-500">تصویر را بکشید تا در قاب قرار بگیرد. فایل نهایی PNG مربعی است.</p>
+      </div>
+      <div class="ui-form-actions">
+        <button class="ui-btn-ghost flex-1" type="button" (click)="close()">انصراف</button>
+        <button class="ui-btn-primary flex-1" type="button" [disabled]="busy() || !src()" (click)="confirm()">
+          @if (busy()) {
+            در حال برش...
+          } @else {
+            تأیید و ادامه
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}

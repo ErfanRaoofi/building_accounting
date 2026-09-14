@@ -1,0 +1,41 @@
+<app-gate-frame
+  [step]="1"
+  title="ورود به سامانه"
+  subtitle="واحدها، شارژ و هزینه‌های ساختمان در یک فضای دقیق و آرام."
+>
+  <form class="ui-gate-panel mx-auto max-w-md" [formGroup]="form" (ngSubmit)="submit()">
+    <label class="ui-field">
+      <span class="ui-label">ایمیل</span>
+      <input
+        class="ui-input"
+        type="email"
+        formControlName="email"
+        autocomplete="username"
+        inputmode="email"
+        dir="ltr"
+        autofocus
+        [class.border-rose-300]="form.controls.email.touched && form.controls.email.invalid"
+      />
+      @if (form.controls.email.touched && form.controls.email.invalid) {
+        <span class="text-xs font-medium text-rose-600">یک ایمیل معتبر وارد کنید.</span>
+      }
+    </label>
+    <label class="ui-field">
+      <span class="ui-label">رمز عبور</span>
+      <app-password-input [control]="form.controls.password" autocomplete="current-password" [invalid]="form.controls.password.touched && form.controls.password.invalid" />
+      @if (form.controls.password.touched && form.controls.password.invalid) {
+        <span class="text-xs font-medium text-rose-600">رمز عبور را وارد کنید.</span>
+      }
+    </label>
+    @if (error()) {
+      <p class="rounded-xl bg-rose-50 px-3 py-2.5 text-sm font-medium text-rose-700" role="alert">{{ error() }}</p>
+    }
+    <button class="ui-btn-primary mt-1 h-12 w-full text-base" type="submit" [disabled]="loading()">
+      <app-busy [on]="loading()" busyText="در حال ورود...">ادامه</app-busy>
+    </button>
+    <p class="pt-1 text-center text-sm text-slate-500">
+      حساب ندارید؟
+      <a class="font-semibold text-brand-700" routerLink="/register">ثبت‌نام</a>
+    </p>
+  </form>
+</app-gate-frame>

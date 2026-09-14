@@ -1,0 +1,106 @@
+<div class="space-y-4">
+  <div class="flex justify-end">
+    <button class="ui-btn-primary w-full sm:w-auto" type="button" (click)="openForm()">افزودن سال مالی</button>
+  </div>
+  @if (loading()) {
+    <app-skeleton kind="list" />
+  } @else if (!rows().length) {
+    <div class="ui-empty">
+      <p>سال مالی برای این ساختمان تعریف نشده است.</p>
+      <button class="ui-btn-primary mt-4" type="button" (click)="openForm()">افزودن سال مالی</button>
+    </div>
+  } @else {
+    <div class="ui-cards">
+      @for (row of rows(); track row.id) {
+        <article class="ui-card space-y-3">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <p class="text-lg font-bold">{{ row.title }}</p>
+              <p class="ui-muted">{{ formatJalali(row.startDate) }} تا {{ formatJalali(row.endDate) }}</p>
+            </div>
+            <span [class]="row.status === 'OPEN' ? 'ui-chip-paid' : 'ui-chip-muted'">
+              {{ row.status === 'OPEN' ? 'باز' : 'بسته' }}
+            </span>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button class="ui-btn-ghost h-9 px-3" type="button" (click)="openEdit(row)">ویرایش</button>
+            <button class="ui-btn-ghost h-9 px-3" type="button" [disabled]="!!actionId()" (click)="generate(row.id)">
+              <app-busy [on]="busy('generate', row.id)" busyText="در حال صدور...">صدور شارژ</app-busy>
+            </button>
+            @if (row.status === 'OPEN') {
+              <button class="ui-btn-danger h-9 px-3" type="button" [disabled]="!!actionId()" (click)="close(row.id)">
+                <app-busy [on]="busy('close', row.id)" busyText="در حال بستن...">بستن</app-busy>
+              </button>
+            }
+          </div>
+        </article>
+      }
+    </div>
+    <div class="ui-table-wrap ui-table-desktop">
+      <table class="ui-table">
+        <thead>
+          <tr>
+            <th>عنوان</th>
+            <th>شروع</th>
+            <th>پایان</th>
+            <th>وضعیت</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.id) {
+            <tr>
+              <td>{{ row.title }}</td>
+              <td>{{ formatJalali(row.startDate) }}</td>
+              <td>{{ formatJalali(row.endDate) }}</td>
+              <td>
+                <span [class]="row.status === 'OPEN' ? 'ui-chip-paid' : 'ui-chip-muted'">
+                  {{ row.status === 'OPEN' ? 'باز' : 'بسته' }}
+                </span>
+              </td>
+              <td class="w-px">
+                <div class="ui-row-actions">
+                  <app-icon-action icon="edit" label="ویرایش" (click)="openEdit(row)" />
+                  <app-icon-action icon="generate" label="صدور شارژ" [disabled]="!!actionId()" [busy]="busy('generate', row.id)" (click)="generate(row.id)" />
+                  @if (row.status === 'OPEN') {
+                    <app-icon-action icon="lock" label="بستن" [danger]="true" [disabled]="!!actionId()" [busy]="busy('close', row.id)" (click)="close(row.id)" />
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <app-pager [(page)]="page" [(size)]="pageSize" [total]="total()" (changed)="loadList()" />
+  }
+
+  <app-form-rail
+    [(open)]="formOpen"
+    [title]="editingId() ? 'ویرایش سال مالی' : 'افزودن سال مالی'"
+    [subtitle]="editingId() ? 'عنوان و بازه این سال مالی را اصلاح کنید' : 'ابتدا سال مالی باز فعلی را ببندید'"
+  >
+    <form class="flex min-h-0 flex-1 flex-col" [formGroup]="form" (ngSubmit)="save()">
+      <div class="ui-form-scroll">
+        <label class="ui-field">
+          <span class="ui-label">عنوان</span>
+          <input class="ui-input" formControlName="title" placeholder="۱۴۰۵" />
+        </label>
+        <label class="ui-field">
+          <span class="ui-label">شروع شمسی</span>
+          <app-jalali-datepicker formControlName="startDate" [nullable]="true" placeholder="1405/01/01" />
+        </label>
+        <label class="ui-field">
+          <span class="ui-label">پایان شمسی</span>
+          <app-jalali-datepicker formControlName="endDate" [nullable]="true" placeholder="1405/12/29" />
+        </label>
+      </div>
+      <div class="ui-form-actions">
+        <button class="ui-btn-ghost flex-1" type="button" (click)="formOpen.set(false)">انصراف</button>
+        <button class="ui-btn-primary flex-1" type="submit" [disabled]="saving()">
+          <app-busy [on]="saving()" busyText="در حال ذخیره...">{{ editingId() ? 'ذخیره' : 'ایجاد سال مالی' }}</app-busy>
+        </button>
+      </div>
+    </form>
+  </app-form-rail>
+</div>

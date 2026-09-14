@@ -1,0 +1,86 @@
+<div class="space-y-4">
+  <div class="flex justify-end">
+    <button class="ui-btn-primary w-full sm:w-auto" type="button" (click)="openForm()">افزودن تعرفه</button>
+  </div>
+  @if (loading()) {
+    <app-skeleton kind="list" />
+  } @else if (!rows().length) {
+    <div class="ui-empty">
+      <p>تعرفه‌ای ثبت نشده است.</p>
+      <button class="ui-btn-primary mt-4" type="button" (click)="openForm()">افزودن تعرفه</button>
+    </div>
+  } @else {
+    <div class="ui-cards">
+      @for (row of rows(); track row.id) {
+        <article class="ui-card flex items-center justify-between gap-3">
+          <div>
+            <p class="font-bold">{{ row.name }}</p>
+            <p class="ui-money ui-muted">{{ formatMoney(row.monthlyAmount) }}</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span [class]="row.isActive ? 'ui-chip-paid' : 'ui-chip-muted'">{{ row.isActive ? 'فعال' : 'غیرفعال' }}</span>
+            <button class="ui-btn-ghost h-9 px-3" type="button" (click)="openEdit(row)">ویرایش</button>
+          </div>
+        </article>
+      }
+    </div>
+    <div class="ui-table-wrap ui-table-desktop">
+      <table class="ui-table min-w-[420px]">
+        <thead>
+          <tr>
+            <th>تعرفه</th>
+            <th>مبلغ ماهانه</th>
+            <th>وضعیت</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.id) {
+            <tr>
+              <td>{{ row.name }}</td>
+              <td class="ui-money">{{ formatMoney(row.monthlyAmount) }}</td>
+              <td>{{ row.isActive ? 'فعال' : 'غیرفعال' }}</td>
+              <td class="w-px">
+                <div class="ui-row-actions">
+                  <app-icon-action icon="edit" label="ویرایش" (click)="openEdit(row)" />
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <app-pager [(page)]="page" [(size)]="pageSize" [total]="total()" (changed)="loadList()" />
+  }
+
+  <app-form-rail
+    [(open)]="formOpen"
+    [title]="editingId() ? 'ویرایش تعرفه' : 'افزودن تعرفه'"
+    [subtitle]="editingId() ? 'مبلغ و وضعیت این تعرفه را اصلاح کنید' : 'مبلغ ماهانه شارژ این تعرفه'"
+  >
+    <form class="flex min-h-0 flex-1 flex-col" [formGroup]="form" (ngSubmit)="save()">
+      <div class="ui-form-scroll">
+        <label class="ui-field">
+          <span class="ui-label">نام تعرفه</span>
+          <input class="ui-input" formControlName="name" placeholder="دو خوابه / سه خوابه" />
+        </label>
+        <label class="ui-field">
+          <span class="ui-label">مبلغ ماهانه</span>
+          <app-money-input formControlName="monthlyAmount" />
+        </label>
+        @if (editingId()) {
+          <label class="flex items-center gap-2 text-sm font-medium text-slate-700">
+            <input type="checkbox" formControlName="isActive" />
+            فعال
+          </label>
+        }
+      </div>
+      <div class="ui-form-actions">
+        <button class="ui-btn-ghost flex-1" type="button" (click)="formOpen.set(false)">انصراف</button>
+        <button class="ui-btn-primary flex-1" type="submit" [disabled]="saving()">
+          <app-busy [on]="saving()" busyText="در حال ذخیره...">{{ editingId() ? 'ذخیره' : 'ثبت تعرفه' }}</app-busy>
+        </button>
+      </div>
+    </form>
+  </app-form-rail>
+</div>

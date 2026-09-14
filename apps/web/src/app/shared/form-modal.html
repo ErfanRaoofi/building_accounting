@@ -1,0 +1,29 @@
+@if (open()) {
+  <button
+    class="ui-overlay z-[65]"
+    type="button"
+    (click)="close()"
+    aria-label="بستن"
+    animate.enter="ui-overlay-enter"
+    animate.leave="ui-overlay-leave"
+  ></button>
+  <div class="pointer-events-none fixed inset-0 z-[66] flex items-end justify-center sm:items-center sm:p-6 print:hidden">
+    <div
+      class="pointer-events-auto w-full rounded-t-3xl bg-white shadow-2xl sm:rounded-3xl"
+      [class.max-w-md]="!wide()"
+      [class.max-w-xl]="wide()"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-label]="title()"
+      animate.enter="ui-modal-enter"
+      animate.leave="ui-modal-leave"
+    >
+      <div class="mx-auto mt-2 h-1.5 w-12 rounded-full bg-slate-200 sm:hidden"></div>
+      <header class="flex items-start justify-between gap-3 border-b border-slate-100 px-5 py-4">
+        <h2 class="text-lg font-bold text-slate-900">{{ title() }}</h2>
+        <button class="ui-btn-ghost h-10 w-10 shrink-0 px-0" type="button" (click)="close()" aria-label="بستن">✕</button>
+      </header>
+      <ng-content />
+    </div>
+  </div>
+}

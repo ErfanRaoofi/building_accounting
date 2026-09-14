@@ -1,0 +1,51 @@
+<app-gate-frame [step]="1" title="ثبت‌نام" subtitle="درخواست شما پس از تأیید مدیر ساختمان یا SuperAdmin فعال می‌شود.">
+  @if (done()) {
+    <div class="ui-gate-panel mx-auto max-w-md space-y-4 text-center">
+      <p class="text-sm font-medium text-slate-700">درخواست ثبت شد و پس از تأیید می‌توانید وارد شوید.</p>
+      <a class="ui-btn-primary inline-flex w-full justify-center" routerLink="/login">بازگشت به ورود</a>
+    </div>
+  } @else {
+    <form class="ui-gate-panel mx-auto max-w-md" [formGroup]="form" (ngSubmit)="submit()">
+      <label class="ui-field">
+        <span class="ui-label">نام</span>
+        <input class="ui-input" formControlName="name" autocomplete="name" />
+      </label>
+      <label class="ui-field">
+        <span class="ui-label">ایمیل</span>
+        <input class="ui-input" type="email" formControlName="email" autocomplete="username" dir="ltr" />
+      </label>
+      <label class="ui-field">
+        <span class="ui-label">رمز عبور</span>
+        <app-password-input [control]="form.controls.password" autocomplete="new-password" />
+      </label>
+      <label class="ui-field">
+        <span class="ui-label">ساختمان</span>
+        <select class="ui-input" formControlName="buildingId">
+          <option value="">انتخاب کنید</option>
+          @for (building of buildings(); track building.id) {
+            <option [value]="building.id">{{ building.name }}</option>
+          }
+        </select>
+      </label>
+      <label class="ui-field">
+        <span class="ui-label">نقش درخواستی</span>
+        <select class="ui-input" formControlName="requestedRole">
+          <option value="RESIDENT">ساکن</option>
+          <option value="ACCOUNTANT">حسابدار</option>
+          <option value="BOARD">هیئت مدیره</option>
+          <option value="MANAGER">مدیر ساختمان</option>
+        </select>
+      </label>
+      @if (error()) {
+        <p class="rounded-xl bg-rose-50 px-3 py-2.5 text-sm font-medium text-rose-700" role="alert">{{ error() }}</p>
+      }
+      <button class="ui-btn-primary mt-1 h-12 w-full text-base" type="submit" [disabled]="loading()">
+        <app-busy [on]="loading()" busyText="در حال ارسال...">ارسال درخواست</app-busy>
+      </button>
+      <p class="pt-1 text-center text-sm text-slate-500">
+        حساب دارید؟
+        <a class="font-semibold text-brand-700" routerLink="/login">ورود</a>
+      </p>
+    </form>
+  }
+</app-gate-frame>

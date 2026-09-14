@@ -1,0 +1,114 @@
+<section class="ui-page">
+  <div class="ui-page-head">
+    <div>
+      <h1 class="ui-title">گزارش بدهکاران</h1>
+      <p class="ui-muted">واحدهایی که در بازه انتخاب‌شده مانده بدهی دارند</p>
+    </div>
+    <a class="ui-btn-primary w-full sm:w-auto" routerLink="/print/debtors" [queryParams]="printQuery()" target="_blank">چاپ</a>
+  </div>
+
+  @if (loading() && !months().length) {
+    <app-skeleton kind="stats" />
+  } @else {
+    @if (months().length) {
+      <div class="ui-card">
+        <div class="grid gap-3 sm:grid-cols-2">
+          <label class="ui-field">
+            <span class="ui-label">از ماه</span>
+            <select class="ui-input" [value]="fromKey()" (change)="setFrom($any($event.target).value)">
+              @for (m of months(); track monthKey(m)) {
+                <option [value]="monthKey(m)">{{ m.title }}</option>
+              }
+            </select>
+          </label>
+          <label class="ui-field">
+            <span class="ui-label">تا ماه</span>
+            <select class="ui-input" [value]="toKey()" (change)="setTo($any($event.target).value)">
+              @for (m of months(); track monthKey(m)) {
+                <option [value]="monthKey(m)">{{ m.title }}</option>
+              }
+            </select>
+          </label>
+        </div>
+      </div>
+    }
+
+    @if (loading()) {
+      <app-skeleton kind="stats" />
+    } @else if (data(); as d) {
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div class="ui-card">
+          <p class="ui-muted">بازه</p>
+          <p class="mt-1 text-lg font-bold">{{ rangeLabel(d) }}</p>
+        </div>
+        <div class="ui-card">
+          <p class="ui-muted">واحد بدهکار</p>
+          <p class="mt-1 text-2xl font-bold text-rose-700">{{ d.summary.units }}</p>
+        </div>
+        <div class="ui-card">
+          <p class="ui-muted">مانده کل</p>
+          <p class="mt-1 ui-money text-2xl font-bold">{{ formatMoney(d.summary.remaining) }}</p>
+        </div>
+      </div>
+      @if (!d.total) {
+        <p class="ui-empty">در این بازه واحد بدهکاری وجود ندارد.</p>
+      } @else {
+        <div class="ui-cards">
+          @for (row of d.items; track row.unitId) {
+            <article class="ui-card space-y-3">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <a class="text-lg font-bold text-brand-700 hover:text-brand-800" [routerLink]="['/units', row.unitId, 'ledger']">واحد {{ row.number }}</a>
+                  <p class="ui-muted">
+                    {{ row.ownerName || 'بدون مالک' }}
+                    @if (row.residentName && row.residentName !== row.ownerName) {
+                      <span> · ساکن {{ row.residentName }}</span>
+                    }
+                  </p>
+                  <p class="ui-muted" dir="ltr">{{ row.phone || 'بدون تلفن' }}</p>
+                </div>
+                <p class="ui-money font-semibold text-rose-700">{{ formatMoney(row.remaining) }}</p>
+              </div>
+              <p class="text-sm text-slate-600">{{ monthsLabel(row) }}</p>
+              <p class="ui-muted">{{ row.unpaidCount }} ماه بدهکار</p>
+            </article>
+          }
+        </div>
+        <div class="ui-table-wrap ui-table-desktop">
+          <table class="ui-table">
+            <thead>
+              <tr>
+                <th>واحد</th>
+                <th>مالک / ساکن</th>
+                <th>تلفن</th>
+                <th>ماه‌های بدهکار</th>
+                <th>تعداد ماه</th>
+                <th>مانده</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of d.items; track row.unitId) {
+                <tr>
+                  <td class="font-semibold">
+                    <a class="text-brand-700 hover:text-brand-800" [routerLink]="['/units', row.unitId, 'ledger']">{{ row.number }}</a>
+                  </td>
+                  <td>
+                    {{ row.ownerName || '-' }}
+                    @if (row.residentName && row.residentName !== row.ownerName) {
+                      <span class="block text-xs text-slate-500">ساکن {{ row.residentName }}</span>
+                    }
+                  </td>
+                  <td dir="ltr">{{ row.phone || '-' }}</td>
+                  <td>{{ monthsLabel(row) }}</td>
+                  <td>{{ row.unpaidCount }}</td>
+                  <td class="ui-money">{{ formatMoney(row.remaining) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <app-pager class="mt-3 block" [(page)]="page" [(size)]="pageSize" [total]="d.total" (changed)="load()" />
+      }
+    }
+  }
+</section>

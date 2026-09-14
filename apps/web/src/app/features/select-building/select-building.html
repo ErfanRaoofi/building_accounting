@@ -1,0 +1,31 @@
+<app-gate-frame [step]="2" title="انتخاب ساختمان" [subtitle]="greeting()" [showAccount]="true">
+  @if (loading() || ctx.buildingsLoading()) {
+    <app-skeleton kind="cards" [rows]="2" />
+  } @else if (!ctx.buildings().length) {
+    <div class="ui-gate-empty">
+      <p class="font-semibold text-slate-800">دسترسی به ساختمانی ندارید</p>
+      <p class="ui-muted mt-2">اگر باید اینجا باشید، از مدیر سیستم بخواهید شما را به ساختمان اضافه کند.</p>
+    </div>
+  } @else {
+    <div class="ui-pick-grid" [class.is-solo]="solo()">
+      @for (b of ctx.buildings(); track b.id) {
+        <button class="ui-pick" type="button" (click)="enter(b)">
+          <app-building-logo [url]="b.logoUrl" [updatedAt]="b.updatedAt" [alt]="b.name" />
+          <span class="min-w-0 flex-1">
+            <strong class="block truncate text-lg text-slate-900">{{ b.name }}</strong>
+            <span class="mt-1 block truncate text-sm text-slate-500">{{ b.address || 'بدون آدرس ثبت‌شده' }}</span>
+            @if (b.managerName) {
+              <span class="mt-1 block truncate text-xs text-slate-400">مدیر: {{ b.managerName }}</span>
+            }
+            <span class="ui-pick-go">
+              ادامه
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M15 5l-7 7 7 7" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </span>
+          </span>
+        </button>
+      }
+    </div>
+  }
+</app-gate-frame>

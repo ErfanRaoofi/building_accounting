@@ -1,0 +1,140 @@
+<section class="ui-page">
+  <div class="ui-page-head">
+    <div>
+      <h1 class="ui-title">دفتر حساب واحد {{ data()?.unit?.number }}</h1>
+      <p class="ui-muted">گردش شارژ و دریافت‌های این واحد</p>
+    </div>
+    <a class="ui-btn-ghost w-full sm:w-auto" routerLink="/units">بازگشت</a>
+  </div>
+  @if (loading()) {
+    <app-skeleton kind="ledger" />
+  } @else if (data(); as d) {
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div class="ui-card">
+        <p class="ui-muted">بدهی ماه‌ها</p>
+        <p class="mt-1 ui-money text-xl font-bold">{{ formatMoney(d.totals.remaining) }}</p>
+      </div>
+      <div class="ui-card">
+        <p class="ui-muted">بستانکاری شارژ</p>
+        <p class="mt-1 ui-money text-xl font-bold text-emerald-700">{{ formatMoney(d.totals.chargeCredit) }}</p>
+      </div>
+      <div class="ui-card">
+        <p class="ui-muted">مانده خالص</p>
+        <p
+          class="mt-1 ui-money text-xl font-bold"
+          [class.text-rose-700]="d.totals.net > 0"
+          [class.text-emerald-700]="d.totals.net < 0"
+        >
+          {{ formatMoney(d.totals.net) }}
+        </p>
+      </div>
+      <div class="ui-card">
+        <p class="ui-muted">شارژ صادرشده</p>
+        <p class="mt-1 ui-money text-xl font-bold">{{ formatMoney(d.totals.debit) }}</p>
+      </div>
+      <div class="ui-card">
+        <p class="ui-muted">دریافت‌ها</p>
+        <p class="mt-1 ui-money text-xl font-bold text-emerald-700">{{ formatMoney(d.totals.credit) }}</p>
+      </div>
+    </div>
+    <h2 class="text-lg font-bold">شارژ ماهانه</h2>
+    @if (!d.invoices.total) {
+      <p class="ui-empty">شارژ ماهانه‌ای صادر نشده است.</p>
+    } @else {
+      <div class="ui-cards">
+        @for (row of d.invoices.items; track row.id) {
+          <article class="ui-card space-y-2">
+            <div class="flex items-start justify-between gap-3">
+              <p class="font-bold">{{ row.monthTitle }}</p>
+              <span [class]="row.status === 'PAID' ? 'ui-chip-paid' : row.status === 'PARTIAL' ? 'ui-chip-partial' : 'ui-chip-unpaid'">
+                {{ statusLabel(row.status) }}
+              </span>
+            </div>
+            <div class="grid grid-cols-3 gap-2 text-sm">
+              <div>
+                <p class="text-slate-500">مبلغ</p>
+                <p class="ui-money font-semibold">{{ formatMoney(row.amount) }}</p>
+              </div>
+              <div>
+                <p class="text-slate-500">پرداخت</p>
+                <p class="ui-money font-semibold">{{ formatMoney(row.paidAmount) }}</p>
+              </div>
+              <div>
+                <p class="text-slate-500">مانده</p>
+                <p class="ui-money font-semibold">{{ formatMoney(row.remaining) }}</p>
+              </div>
+            </div>
+          </article>
+        }
+      </div>
+      <div class="ui-table-wrap ui-table-desktop">
+        <table class="ui-table">
+          <thead>
+            <tr>
+              <th>ماه</th>
+              <th>مبلغ</th>
+              <th>پرداخت‌شده</th>
+              <th>مانده</th>
+              <th>وضعیت</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of d.invoices.items; track row.id) {
+              <tr>
+                <td>{{ row.monthTitle }}</td>
+                <td class="ui-money">{{ formatMoney(row.amount) }}</td>
+                <td class="ui-money">{{ formatMoney(row.paidAmount) }}</td>
+                <td class="ui-money">{{ formatMoney(row.remaining) }}</td>
+                <td>
+                  <span [class]="row.status === 'PAID' ? 'ui-chip-paid' : row.status === 'PARTIAL' ? 'ui-chip-partial' : 'ui-chip-unpaid'">
+                    {{ statusLabel(row.status) }}
+                  </span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <app-pager class="mt-3 block" [(page)]="invoicePage" [(size)]="invoiceSize" [total]="d.invoices.total" (changed)="load()" />
+    }
+    <h2 class="text-lg font-bold">دریافت‌ها</h2>
+    @if (!d.receipts.total) {
+      <p class="ui-empty">دریافتی برای این واحد ثبت نشده است.</p>
+    } @else {
+      <div class="ui-cards">
+        @for (row of d.receipts.items; track row.id) {
+          <article class="ui-card flex items-start justify-between gap-3">
+            <div>
+              <p class="font-bold">{{ row.number }}</p>
+              <p class="ui-muted">{{ formatJalali(row.date) }} · {{ row.receiptType?.name }}</p>
+            </div>
+            <p class="ui-money font-semibold">{{ formatMoney(row.totalAmount) }}</p>
+          </article>
+        }
+      </div>
+      <div class="ui-table-wrap ui-table-desktop">
+        <table class="ui-table">
+          <thead>
+            <tr>
+              <th>شماره</th>
+              <th>تاریخ</th>
+              <th>نوع</th>
+              <th>مبلغ</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of d.receipts.items; track row.id) {
+              <tr>
+                <td>{{ row.number }}</td>
+                <td>{{ formatJalali(row.date) }}</td>
+                <td>{{ row.receiptType?.name }}</td>
+                <td class="ui-money">{{ formatMoney(row.totalAmount) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <app-pager class="mt-3 block" [(page)]="receiptPage" [(size)]="receiptSize" [total]="d.receipts.total" (changed)="load()" />
+    }
+  }
+</section>

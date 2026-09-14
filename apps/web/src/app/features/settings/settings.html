@@ -1,0 +1,470 @@
+<section class="ui-page">
+  <div class="ui-page-head">
+    <div>
+      <h1 class="ui-title">تنظیمات {{ ctx.building()?.name || 'ساختمان' }}</h1>
+      <p class="ui-muted">سال مالی، تعرفه، انواع دریافت و اعضا فقط برای همین ساختمان است.</p>
+    </div>
+  </div>
+
+  @if (!ctx.building()) {
+    <p class="ui-card">ابتدا یک ساختمان را انتخاب کنید.</p>
+  } @else {
+    <div class="flex gap-2 overflow-x-auto pb-1">
+      @for (item of tabs(); track item.id) {
+        <button
+          class="whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition"
+          [class]="tab() === item.id ? 'bg-brand-700 text-white shadow-sm' : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'"
+          type="button"
+          (click)="onTab(item.id)"
+        >
+          {{ item.label }}
+        </button>
+      }
+    </div>
+
+    @if (tab() === 'profile') {
+      <form class="ui-card ui-grid" [formGroup]="profile" (ngSubmit)="saveProfile()">
+        <div class="ui-span flex flex-wrap items-center gap-4">
+          <app-building-logo size="lg" [url]="ctx.building()?.logoUrl" [updatedAt]="ctx.building()?.updatedAt" [alt]="ctx.building()?.name || ''" />
+          <div class="space-y-2">
+            <p class="ui-label">لوگوی مجتمع</p>
+            <div class="flex flex-wrap gap-2">
+              <button class="ui-btn-ghost h-9 px-3" type="button" [disabled]="savingLogo()" (click)="cropper()?.browse()">
+                <app-busy [on]="savingLogo()" busyText="در حال آپلود...">انتخاب لوگو</app-busy>
+              </button>
+              @if (ctx.building()?.logoUrl) {
+                <button class="ui-btn-danger h-9 px-3" type="button" [disabled]="savingLogo()" (click)="removeLogo()">حذف</button>
+              }
+            </div>
+            <p class="text-xs text-slate-500">مربع ۵۱۲×۵۱۲ پیکسل، PNG بدون افت کیفیت</p>
+          </div>
+        </div>
+        <label class="ui-field">
+          <span class="ui-label">نام ساختمان</span>
+          <input class="ui-input" formControlName="name" />
+        </label>
+        <label class="ui-field">
+          <span class="ui-label">آدرس</span>
+          <input class="ui-input" formControlName="address" />
+        </label>
+        <label class="ui-field">
+          <span class="ui-label">مدیر ساختمان</span>
+          <input class="ui-input" formControlName="managerName" />
+        </label>
+        <label class="ui-field">
+          <span class="ui-label">تلفن</span>
+          <input class="ui-input" formControlName="phone" dir="ltr" />
+        </label>
+        <div class="flex items-end ui-span">
+          <button class="ui-btn-primary w-full sm:w-auto" type="submit" [disabled]="savingProfile()">
+            <app-busy [on]="savingProfile()" busyText="در حال ذخیره...">ذخیره مشخصات</app-busy>
+          </button>
+        </div>
+      </form>
+    }
+
+    @if (tab() === 'years') {
+      <app-fiscal-years />
+    }
+    @if (tab() === 'tariffs') {
+      <app-tariffs />
+    }
+
+    @if (tab() === 'types') {
+      <div class="space-y-4">
+        <div class="flex justify-end">
+          <button class="ui-btn-primary w-full sm:w-auto" type="button" (click)="openType()">افزودن نوع دریافت</button>
+        </div>
+        @if (typesLoading()) {
+          <app-skeleton kind="list" [rows]="4" />
+        } @else if (!receiptTypes().length) {
+          <div class="ui-empty">
+            <p>نوع دریافتی تعریف نشده است.</p>
+            <button class="ui-btn-primary mt-4" type="button" (click)="openType()">افزودن نوع دریافت</button>
+          </div>
+        } @else {
+          <div class="ui-cards">
+            @for (row of receiptTypes(); track row.id) {
+              <article class="ui-card flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                  <span class="font-semibold">{{ row.name }}</span>
+                  <span class="ui-chip-muted">{{ kindLabel(row.kind) }}</span>
+                </div>
+                <button class="ui-btn-ghost h-9 px-3" type="button" (click)="openEditType(row)">ویرایش</button>
+              </article>
+            }
+          </div>
+          <div class="ui-table-wrap ui-table-desktop">
+            <table class="ui-table min-w-[360px]">
+              <thead>
+                <tr>
+                  <th>نام</th>
+                  <th>ماهیت</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of receiptTypes(); track row.id) {
+                  <tr>
+                    <td>{{ row.name }}</td>
+                    <td>{{ kindLabel(row.kind) }}</td>
+                    <td class="w-px">
+                      <div class="ui-row-actions">
+                        <app-icon-action icon="edit" label="ویرایش" (click)="openEditType(row)" />
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <app-pager [(page)]="typesPage" [(size)]="typesSize" [total]="typesTotal()" (changed)="loadTypes()" />
+        }
+      </div>
+    }
+
+    @if (tab() === 'categories') {
+      <div class="space-y-4">
+        <div class="flex justify-end">
+          <button class="ui-btn-primary w-full sm:w-auto" type="button" (click)="openCategory()">افزودن سرفصل</button>
+        </div>
+        @if (catsLoading()) {
+          <app-skeleton kind="list" [rows]="4" />
+        } @else if (!categories().length) {
+          <div class="ui-empty">
+            <p>سرفصل هزینه‌ای ثبت نشده است.</p>
+            <button class="ui-btn-primary mt-4" type="button" (click)="openCategory()">افزودن سرفصل</button>
+          </div>
+        } @else {
+          <div class="ui-cards">
+            @for (row of categories(); track row.id) {
+              <article class="ui-card flex items-center justify-between gap-3">
+                <p class="font-semibold">{{ categoryLabel(row) }}</p>
+                <button class="ui-btn-ghost h-9 px-3" type="button" (click)="openEditCategory(row)">ویرایش</button>
+              </article>
+            }
+          </div>
+          <div class="ui-table-wrap ui-table-desktop">
+            <table class="ui-table min-w-[320px]">
+              <thead>
+                <tr>
+                  <th>سرفصل</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of categories(); track row.id) {
+                  <tr>
+                    <td>{{ categoryLabel(row) }}</td>
+                    <td class="w-px">
+                      <div class="ui-row-actions">
+                        <app-icon-action icon="edit" label="ویرایش" (click)="openEditCategory(row)" />
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <app-pager [(page)]="catsPage" [(size)]="catsSize" [total]="catsTotal()" (changed)="loadCats()" />
+        }
+      </div>
+    }
+
+    @if (tab() === 'members') {
+      <div class="space-y-4">
+        @if (requests().length) {
+          <div class="space-y-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+            <div class="flex items-center justify-between gap-3">
+              <p class="font-bold text-amber-950">درخواست‌های در انتظار تأیید</p>
+              <button class="ui-btn-ghost h-9 px-3" type="button" (click)="onTab('requests')">همه درخواست‌ها</button>
+            </div>
+            @for (row of requests(); track row.id) {
+              <article class="ui-card space-y-3">
+                <div>
+                  <p class="font-bold">{{ row.name }}</p>
+                  <p class="ui-muted" dir="ltr">{{ row.email }}</p>
+                  <p class="text-sm text-slate-500">{{ roleLabel(row.requestedRole) }}</p>
+                </div>
+                <div class="flex items-center gap-2 whitespace-nowrap">
+                  <button class="ui-btn-primary h-9 px-3" type="button" [disabled]="!!reviewingId()" (click)="openApprove(row)">
+                    <app-busy [on]="reviewingId() === row.id" busyText="در حال تأیید...">تأیید</app-busy>
+                  </button>
+                  <button class="ui-btn-danger h-9 px-3" type="button" [disabled]="!!reviewingId()" (click)="rejectRequest(row)">رد</button>
+                </div>
+              </article>
+            }
+          </div>
+        }
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p class="ui-muted">هر کاربر می‌تواند عضو چند ساختمان باشد و فقط ساختمان‌های خودش را بعد از ورود ببیند.</p>
+          @if (auth.canManageMembers()) {
+            <button class="ui-btn-primary w-full shrink-0 sm:w-auto" type="button" (click)="openMember()">افزودن عضو</button>
+          }
+        </div>
+        @if (membersLoading()) {
+          <app-skeleton kind="list" [rows]="4" />
+        } @else if (!members().length) {
+          <div class="ui-empty">
+            <p>عضوی برای این ساختمان ثبت نشده است.</p>
+            @if (auth.canManageMembers()) {
+              <button class="ui-btn-primary mt-4" type="button" (click)="openMember()">افزودن عضو</button>
+            }
+          </div>
+        } @else {
+          <div class="ui-cards">
+            @for (row of members(); track row.id) {
+              <article class="ui-card space-y-2">
+                <div class="flex items-start justify-between gap-3">
+                  <div>
+                    <p class="font-bold">{{ row.name }}</p>
+                    <p class="ui-muted" dir="ltr">{{ row.email }}</p>
+                  </div>
+                  <span class="ui-chip-muted">{{ rolesLabel(row.roles) }}</span>
+                </div>
+                @if (auth.canManageMembers() && row.id !== auth.user()?.id) {
+                  <div class="flex flex-wrap gap-2">
+                    <button class="ui-btn-ghost h-9 px-3" type="button" (click)="openEditMember(row)">ویرایش نقش</button>
+                    <button class="ui-btn-danger h-9 px-3" type="button" [disabled]="!!removingId()" (click)="removeMember(row.id)">
+                      <app-busy [on]="removingId() === row.id" busyText="در حال حذف...">حذف</app-busy>
+                    </button>
+                  </div>
+                }
+              </article>
+            }
+          </div>
+          <div class="ui-table-wrap ui-table-desktop">
+            <table class="ui-table">
+              <thead>
+                <tr>
+                  <th>نام</th>
+                  <th>ایمیل</th>
+                  <th>نقش</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of members(); track row.id) {
+                  <tr>
+                    <td>{{ row.name }}</td>
+                    <td dir="ltr">{{ row.email }}</td>
+                    <td>{{ rolesLabel(row.roles) }}</td>
+                    <td class="w-px">
+                      @if (auth.canManageMembers() && row.id !== auth.user()?.id) {
+                        <div class="ui-row-actions">
+                          <app-icon-action icon="edit" label="ویرایش نقش" (click)="openEditMember(row)" />
+                          <app-icon-action
+                            icon="trash"
+                            label="حذف"
+                            [danger]="true"
+                            [disabled]="!!removingId()"
+                            [busy]="removingId() === row.id"
+                            (click)="removeMember(row.id)"
+                          />
+                        </div>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <app-pager [(page)]="membersPage" [(size)]="membersSize" [total]="membersTotal()" (changed)="loadMembersList()" />
+        }
+      </div>
+    }
+
+    @if (tab() === 'requests') {
+      <div class="space-y-4">
+        <p class="ui-muted">درخواست‌های ثبت‌نام این ساختمان که هنوز تأیید نشده‌اند.</p>
+        @if (requestsLoading()) {
+          <app-skeleton kind="list" [rows]="4" />
+        } @else if (!requests().length) {
+          <div class="ui-empty">
+            <p>درخواست معلقی وجود ندارد.</p>
+          </div>
+        } @else {
+          <div class="ui-cards">
+            @for (row of requests(); track row.id) {
+              <article class="ui-card space-y-3">
+                <div>
+                  <p class="font-bold">{{ row.name }}</p>
+                  <p class="ui-muted" dir="ltr">{{ row.email }}</p>
+                  <p class="text-sm text-slate-500">{{ roleLabel(row.requestedRole) }}</p>
+                </div>
+                <div class="flex items-center gap-2 whitespace-nowrap">
+                  <button class="ui-btn-primary h-9 px-3" type="button" [disabled]="!!reviewingId()" (click)="openApprove(row)">
+                    <app-busy [on]="reviewingId() === row.id" busyText="در حال تأیید...">تأیید</app-busy>
+                  </button>
+                  <button class="ui-btn-danger h-9 px-3" type="button" [disabled]="!!reviewingId()" (click)="rejectRequest(row)">رد</button>
+                </div>
+              </article>
+            }
+          </div>
+          <div class="ui-table-wrap ui-table-desktop">
+            <table class="ui-table">
+              <thead>
+                <tr>
+                  <th>نام</th>
+                  <th>ایمیل</th>
+                  <th>نقش</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (row of requests(); track row.id) {
+                  <tr>
+                    <td class="font-semibold">{{ row.name }}</td>
+                    <td dir="ltr">{{ row.email }}</td>
+                    <td>{{ roleLabel(row.requestedRole) }}</td>
+                    <td class="w-px whitespace-nowrap">
+                      <div class="ui-row-actions">
+                        <button class="ui-btn-primary h-9 px-3" type="button" [disabled]="!!reviewingId()" (click)="openApprove(row)">
+                          <app-busy [on]="reviewingId() === row.id" busyText="در حال تأیید...">تأیید</app-busy>
+                        </button>
+                        <button class="ui-btn-danger h-9 px-3" type="button" [disabled]="!!reviewingId()" (click)="rejectRequest(row)">رد</button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          <app-pager [(page)]="requestsPage" [(size)]="requestsSize" [total]="requestsTotal()" itemLabel="درخواست" (changed)="loadRequestsList()" />
+        }
+      </div>
+    }
+
+    <app-form-modal [(open)]="typeOpen" [title]="editingTypeId() ? 'ویرایش نوع دریافت' : 'افزودن نوع دریافت'">
+      <form class="space-y-4 px-5 py-4" [formGroup]="typeForm" (ngSubmit)="saveType()">
+        <label class="ui-field">
+          <span class="ui-label">نام</span>
+          <input class="ui-input" formControlName="name" />
+        </label>
+        <label class="ui-field">
+          <span class="ui-label">ماهیت</span>
+          <select class="ui-input" formControlName="kind">
+            <option value="CHARGE">شارژ</option>
+            <option value="ENTRANCE">ورودی</option>
+            <option value="OTHER">سایر</option>
+          </select>
+        </label>
+        <div class="ui-form-actions px-0 pb-0">
+          <button class="ui-btn-ghost flex-1" type="button" (click)="typeOpen.set(false)">انصراف</button>
+          <button class="ui-btn-primary flex-1" type="submit" [disabled]="addingType()">
+            <app-busy [on]="addingType()" busyText="در حال ذخیره...">{{ editingTypeId() ? 'ذخیره' : 'افزودن' }}</app-busy>
+          </button>
+        </div>
+      </form>
+    </app-form-modal>
+
+    <app-form-modal [(open)]="categoryOpen" [title]="editingCategoryId() ? 'ویرایش سرفصل' : 'افزودن سرفصل'">
+      <form class="space-y-4 px-5 py-4" [formGroup]="categoryForm" (ngSubmit)="saveCategory()">
+        <label class="ui-field">
+          <span class="ui-label">نام سرفصل</span>
+          <input class="ui-input" formControlName="name" />
+        </label>
+        <label class="ui-field">
+          <span class="ui-label">زیرمجموعه</span>
+          <select class="ui-input" formControlName="parentId">
+            <option value="">سرفصل اصلی</option>
+            @for (c of categoryOptions(); track c.id) {
+              @if (!c.parentId && c.id !== editingCategoryId()) {
+                <option [value]="c.id">{{ c.name }}</option>
+              }
+            }
+          </select>
+        </label>
+        <div class="ui-form-actions px-0 pb-0">
+          <button class="ui-btn-ghost flex-1" type="button" (click)="categoryOpen.set(false)">انصراف</button>
+          <button class="ui-btn-primary flex-1" type="submit" [disabled]="addingCategory()">
+            <app-busy [on]="addingCategory()" busyText="در حال ذخیره...">{{ editingCategoryId() ? 'ذخیره' : 'افزودن سرفصل' }}</app-busy>
+          </button>
+        </div>
+      </form>
+    </app-form-modal>
+
+    <app-form-rail [(open)]="memberOpen" [title]="editingMemberId() ? 'ویرایش عضو' : 'افزودن عضو'" subtitle="چند نقش برای همین ساختمان قابل انتخاب است. ساکن باید به واحد وصل شود.">
+      <form class="flex min-h-0 flex-1 flex-col" [formGroup]="memberForm" (ngSubmit)="addMember()">
+        <div class="ui-form-scroll">
+          <label class="ui-field">
+            <span class="ui-label">ایمیل</span>
+            <input class="ui-input" formControlName="email" dir="ltr" [readonly]="!!editingMemberId()" />
+          </label>
+          @if (!editingMemberId()) {
+            <label class="ui-field">
+              <span class="ui-label">نام (کاربر جدید)</span>
+              <input class="ui-input" formControlName="name" />
+            </label>
+            <label class="ui-field">
+              <span class="ui-label">رمز (کاربر جدید)</span>
+              <app-password-input [control]="memberForm.controls.password" autocomplete="new-password" />
+            </label>
+          }
+          <div class="ui-field">
+            <span class="ui-label">نقش‌ها</span>
+            <div class="space-y-2">
+              @if (auth.isAdmin()) {
+                <label class="flex items-center gap-2 text-sm">
+                  <input class="ui-check" type="checkbox" [checked]="memberRoles().includes('MANAGER')" (change)="toggleRole('MANAGER')" />
+                  مدیر ساختمان
+                </label>
+              }
+              <label class="flex items-center gap-2 text-sm">
+                <input class="ui-check" type="checkbox" [checked]="memberRoles().includes('ACCOUNTANT')" (change)="toggleRole('ACCOUNTANT')" />
+                حسابدار
+              </label>
+              <label class="flex items-center gap-2 text-sm">
+                <input class="ui-check" type="checkbox" [checked]="memberRoles().includes('BOARD')" (change)="toggleRole('BOARD')" />
+                هیئت مدیره
+              </label>
+              <label class="flex items-center gap-2 text-sm">
+                <input class="ui-check" type="checkbox" [checked]="memberRoles().includes('RESIDENT')" (change)="toggleRole('RESIDENT')" />
+                ساکن
+              </label>
+            </div>
+          </div>
+          @if (memberRoles().includes('RESIDENT')) {
+            <div class="ui-field">
+              <span class="ui-label">واحدهای ساکن</span>
+              <div class="max-h-40 space-y-2 overflow-y-auto rounded-xl border border-slate-200 p-3">
+                @for (unit of buildingUnits(); track unit.id) {
+                  <label class="flex items-center gap-2 text-sm">
+                    <input class="ui-check" type="checkbox" [checked]="memberUnitIds().includes(unit.id)" (change)="toggleUnit(unit.id)" />
+                    واحد {{ unit.number }}
+                  </label>
+                }
+              </div>
+            </div>
+          }
+        </div>
+        <div class="ui-form-actions">
+          <button class="ui-btn-ghost flex-1" type="button" (click)="memberOpen.set(false)">انصراف</button>
+          <button class="ui-btn-primary flex-1" type="submit" [disabled]="addingMember()">
+            <app-busy [on]="addingMember()" busyText="در حال ذخیره...">{{ editingMemberId() ? 'ذخیره' : 'افزودن عضو' }}</app-busy>
+          </button>
+        </div>
+      </form>
+    </app-form-rail>
+    <app-form-modal [(open)]="approveOpen" title="تأیید ساکن">
+      <div class="space-y-4 px-5 py-4">
+        <p class="text-sm text-slate-600">برای تأیید نقش ساکن حداقل یک واحد انتخاب کنید.</p>
+        <div class="max-h-48 space-y-2 overflow-y-auto">
+          @for (unit of buildingUnits(); track unit.id) {
+            <label class="flex items-center gap-2 text-sm">
+              <input class="ui-check" type="checkbox" [checked]="approveUnitIds().includes(unit.id)" (change)="toggleApproveUnit(unit.id)" />
+              واحد {{ unit.number }}
+            </label>
+          }
+        </div>
+      </div>
+      <div class="ui-form-actions">
+        <button class="ui-btn-ghost flex-1" type="button" (click)="approveOpen.set(false)">انصراف</button>
+        <button class="ui-btn-primary flex-1" type="button" [disabled]="!!reviewingId()" (click)="confirmApprove()">
+          <app-busy [on]="!!reviewingId()" busyText="در حال تأیید...">تأیید</app-busy>
+        </button>
+      </div>
+    </app-form-modal>
+    <app-logo-cropper (cropped)="uploadLogo($event)" />
+  }
+</section>

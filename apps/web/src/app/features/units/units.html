@@ -1,0 +1,149 @@
+<section class="ui-page">
+  <div class="ui-page-head">
+    <div>
+      <h1 class="ui-title">واحدها</h1>
+      <p class="ui-muted">{{ auth.isStaff() ? 'واحدهای ' + (ctx.building()?.name || '') : 'واحدهای متصل به حساب شما' }}</p>
+    </div>
+    @if (auth.isStaff()) {
+      <button class="ui-btn-primary w-full sm:w-auto" type="button" (click)="openForm()">افزودن واحد</button>
+    }
+  </div>
+
+  @if (loading()) {
+    <app-skeleton kind="list" />
+  } @else if (!rows().length) {
+    <div class="ui-empty">
+      <p>{{ auth.isStaff() ? 'هنوز واحدی برای این ساختمان ثبت نشده است.' : 'واحدی به حساب شما متصل نیست.' }}</p>
+      @if (auth.isStaff()) {
+        <button class="ui-btn-primary mt-4" type="button" (click)="openForm()">افزودن واحد</button>
+      }
+    </div>
+  } @else {
+    <div class="ui-cards">
+      @for (row of rows(); track row.id) {
+        <article class="ui-card space-y-3">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <p class="text-lg font-bold text-slate-900">واحد {{ row.number }}</p>
+              <p class="ui-muted">{{ row.ownerName || 'بدون مالک' }}</p>
+            </div>
+            <span [class]="row.occupancy === 'VACANT' ? 'ui-chip-muted' : 'ui-chip-paid'">
+              {{ row.occupancy === 'VACANT' ? 'خالی' : 'ساکن' }}
+            </span>
+          </div>
+          <div class="flex items-center justify-between text-sm">
+            <span class="text-slate-500">{{ row.tariff?.name || 'بدون تعرفه' }}</span>
+            <span class="ui-money font-semibold">{{ formatMoney(row.monthlyCharge) }}</span>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            @if (auth.isStaff()) {
+              <button class="ui-btn-ghost h-9 px-3" type="button" (click)="openEdit(row)">ویرایش</button>
+            }
+            <a class="ui-btn-ghost h-9 px-3" [routerLink]="['/units', row.id, 'ledger']">دفتر حساب</a>
+          </div>
+        </article>
+      }
+    </div>
+    <div class="ui-table-wrap ui-table-desktop">
+      <table class="ui-table">
+        <thead>
+          <tr>
+            <th>واحد</th>
+            <th>مالک</th>
+            <th>سکونت</th>
+            <th>تعرفه</th>
+            <th>شارژ ماهانه</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.id) {
+            <tr>
+              <td class="font-semibold">{{ row.number }}</td>
+              <td>{{ row.ownerName || '-' }}</td>
+              <td>
+                <span [class]="row.occupancy === 'VACANT' ? 'ui-chip-muted' : 'ui-chip-paid'">
+                  {{ row.occupancy === 'VACANT' ? 'خالی' : 'ساکن' }}
+                </span>
+              </td>
+              <td>{{ row.tariff?.name || '-' }}</td>
+              <td class="ui-money">{{ formatMoney(row.monthlyCharge) }}</td>
+              <td class="w-px">
+                <div class="ui-row-actions">
+                  @if (auth.isStaff()) {
+                    <app-icon-action icon="edit" label="ویرایش" (click)="openEdit(row)" />
+                  }
+                  <app-icon-action icon="ledger" label="دفتر حساب" [link]="['/units', row.id, 'ledger']" />
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <app-pager [(page)]="page" [(size)]="pageSize" [total]="total()" (changed)="load()" />
+  }
+
+  <app-form-rail
+    [(open)]="formOpen"
+    [title]="editingId() ? 'ویرایش واحد' : 'افزودن واحد'"
+    [subtitle]="editingId() ? 'مشخصات این واحد را اصلاح کنید' : 'مشخصات واحد جدید را وارد کنید'"
+  >
+    <form class="flex min-h-0 flex-1 flex-col" [formGroup]="form" (ngSubmit)="save()">
+      <div class="ui-form-scroll">
+        <label class="ui-field">
+          <span class="ui-label">شماره واحد</span>
+          <input class="ui-input" formControlName="number" />
+        </label>
+        <div class="grid grid-cols-2 gap-3">
+          <label class="ui-field">
+            <span class="ui-label">طبقه</span>
+            <input class="ui-input" type="number" formControlName="floor" />
+          </label>
+          <label class="ui-field">
+            <span class="ui-label">خواب</span>
+            <input class="ui-input" type="number" formControlName="bedrooms" />
+          </label>
+        </div>
+        <label class="ui-field">
+          <span class="ui-label">وضعیت سکونت</span>
+          <select class="ui-input" formControlName="occupancy">
+            <option value="OCCUPIED">ساکن</option>
+            <option value="VACANT">خالی</option>
+          </select>
+        </label>
+        <label class="ui-field">
+          <span class="ui-label">مالک</span>
+          <input class="ui-input" formControlName="ownerName" />
+        </label>
+        <label class="ui-field">
+          <span class="ui-label">ساکن</span>
+          <input class="ui-input" formControlName="residentName" />
+        </label>
+        <label class="ui-field">
+          <span class="ui-label">تلفن</span>
+          <input class="ui-input" formControlName="phone" dir="ltr" />
+        </label>
+        <label class="ui-field">
+          <span class="ui-label">تعرفه</span>
+          <select class="ui-input" formControlName="tariffId">
+            <option value="">بدون تعرفه</option>
+            @for (t of tariffs(); track t.id) {
+              <option [value]="t.id">{{ t.name }} ({{ formatMoney(t.monthlyAmount) }})</option>
+            }
+          </select>
+        </label>
+        <label class="ui-field">
+          <span class="ui-label">مبلغ سفارشی</span>
+          <app-money-input formControlName="customMonthlyCharge" [nullable]="true" />
+        </label>
+      </div>
+      <div class="ui-form-actions">
+        <button class="ui-btn-ghost flex-1" type="button" (click)="formOpen.set(false)">انصراف</button>
+        <button class="ui-btn-primary flex-1" type="submit" [disabled]="saving()">
+          <app-busy [on]="saving()" busyText="در حال ذخیره...">{{ editingId() ? 'ذخیره' : 'ثبت واحد' }}</app-busy>
+        </button>
+      </div>
+    </form>
+  </app-form-rail>
+</section>

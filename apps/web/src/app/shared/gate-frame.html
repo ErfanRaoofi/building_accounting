@@ -1,0 +1,60 @@
+<div class="ui-gate">
+  <div class="ui-gate-skyline" aria-hidden="true"></div>
+  <div class="ui-gate-shell">
+    <header class="ui-gate-top">
+      <div class="ui-gate-brand">
+        <span class="ui-gate-mark" aria-hidden="true">م</span>
+        <div>
+          <p class="ui-gate-kicker">سامانه حسابداری ساختمان</p>
+          <p class="ui-gate-name">مهر</p>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center justify-end gap-2">
+        <ng-content select="[gateActions]" />
+        @if (showAccount()) {
+          <div class="ui-gate-user">
+            <span class="ui-gate-avatar">{{ initial() }}</span>
+            <span class="hidden min-w-0 truncate text-sm font-medium text-slate-700 sm:block">{{ auth.user()?.name }}</span>
+          </div>
+          <button class="ui-btn-ghost h-10 px-3" type="button" (click)="auth.logout()">خروج</button>
+        }
+      </div>
+    </header>
+
+    <ol class="ui-gate-steps" aria-label="مراحل ورود">
+      @for (item of steps; track item.n; let last = $last) {
+        <li
+          class="ui-gate-step"
+          [class.is-done]="step() > item.n"
+          [class.is-current]="step() === item.n"
+          [attr.aria-current]="step() === item.n ? 'step' : null"
+        >
+          <span class="ui-gate-step-dot">
+            @if (step() > item.n) {
+              <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true">
+                <path d="M5 12l5 5L20 7" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            } @else {
+              {{ item.n }}
+            }
+          </span>
+          <span class="ui-gate-step-label">{{ item.label }}</span>
+        </li>
+        @if (!last) {
+          <span class="ui-gate-step-line" [class.is-done]="step() > item.n" aria-hidden="true"></span>
+        }
+      }
+    </ol>
+
+    <div class="ui-gate-copy">
+      <h1 class="ui-gate-title">{{ title() }}</h1>
+      @if (subtitle()) {
+        <p class="ui-gate-subtitle">{{ subtitle() }}</p>
+      }
+    </div>
+
+    <div class="ui-gate-stage ui-gate-rise">
+      <ng-content />
+    </div>
+  </div>
+</div>

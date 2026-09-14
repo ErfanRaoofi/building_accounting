@@ -1,0 +1,71 @@
+<section class="ui-page">
+  <div class="ui-page-head">
+    <div>
+      <h1 class="ui-title">گزارش وضعیت شارژ</h1>
+      <p class="ui-muted">وضعیت پرداخت هر واحد در ماه‌های سال مالی</p>
+    </div>
+    <a class="ui-btn-primary w-full sm:w-auto" routerLink="/print/unit-charges" target="_blank">چاپ</a>
+  </div>
+  @if (loading()) {
+    <app-skeleton kind="stats" />
+  } @else if (data(); as d) {
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="ui-card">
+        <p class="ui-muted">تعداد واحد</p>
+        <p class="mt-1 text-2xl font-bold">{{ d.summary.units }}</p>
+      </div>
+      <div class="ui-card">
+        <p class="ui-muted">دارای بدهی</p>
+        <p class="mt-1 text-2xl font-bold text-rose-700">{{ d.summary.withDebt }}</p>
+      </div>
+      <div class="ui-card">
+        <p class="ui-muted">مانده بدهی</p>
+        <p class="mt-1 ui-money text-2xl font-bold">{{ formatMoney(d.summary.remaining) }}</p>
+      </div>
+      <div class="ui-card">
+        <p class="ui-muted">بستانکاری</p>
+        <p class="mt-1 ui-money text-2xl font-bold text-emerald-700">{{ formatMoney(d.summary.credit || 0) }}</p>
+      </div>
+    </div>
+    @if (!d.total) {
+      <p class="ui-empty">برای این سال مالی گزارشی وجود ندارد.</p>
+    } @else {
+      <p class="ui-muted md:hidden">برای دیدن همه ماه‌ها جدول را افقی بکشید.</p>
+      <div class="ui-table-wrap">
+        <table class="ui-table min-w-[960px]">
+          <thead>
+            <tr>
+              <th>واحد</th>
+              <th>مالک</th>
+              @for (m of d.months; track m.title) {
+                <th>{{ m.title }}</th>
+              }
+              <th>مانده</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of d.rows; track row.unitId) {
+              <tr>
+                <td class="font-semibold">{{ row.number }}</td>
+                <td>{{ row.ownerName }}</td>
+                @for (cell of row.cells; track cell.title) {
+                  <td class="text-center">
+                    <app-status-mark [status]="cell.status" />
+                  </td>
+                }
+                <td
+                  class="ui-money"
+                  [class.text-rose-700]="row.net > 0"
+                  [class.text-emerald-700]="row.net < 0"
+                >
+                  {{ formatMoney(row.net ?? row.remaining) }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <app-pager class="mt-3 block" [(page)]="page" [(size)]="pageSize" [total]="d.total" (changed)="load()" />
+    }
+  }
+</section>

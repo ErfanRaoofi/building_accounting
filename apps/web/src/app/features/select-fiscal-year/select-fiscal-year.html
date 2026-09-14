@@ -1,0 +1,44 @@
+<app-gate-frame [step]="3" title="انتخاب سال مالی" [subtitle]="subtitle()" [showAccount]="true">
+  <button gateActions class="ui-btn-ghost h-10 px-3" type="button" (click)="back()">تغییر ساختمان</button>
+
+  @if (loading() || ctx.fiscalYearsLoading()) {
+    <app-skeleton kind="cards" [rows]="2" />
+  } @else if (!years().length) {
+    <div class="ui-gate-empty">
+      <p class="font-semibold text-slate-800">سال مالی تعریف نشده است</p>
+      <p class="ui-muted mt-2">بعد از تعریف سال مالی در تنظیمات، از اینجا وارد سامانه شوید.</p>
+      <button class="ui-btn-ghost mt-5" type="button" (click)="back()">بازگشت به ساختمان</button>
+    </div>
+  } @else {
+    <div class="mb-4 flex items-center gap-3 rounded-[1.5rem] border border-slate-200/90 bg-white px-4 py-3">
+      <app-building-logo [url]="ctx.building()?.logoUrl" [updatedAt]="ctx.building()?.updatedAt" [alt]="ctx.building()?.name || ''" />
+      <p class="truncate text-sm font-semibold text-slate-800">{{ ctx.building()?.name }}</p>
+    </div>
+    <div class="ui-pick-grid" [class.is-solo]="solo()">
+      @for (fy of years(); track fy.id) {
+        <button class="ui-pick" [class.ui-pick-featured]="fy.status === 'OPEN'" type="button" (click)="enter(fy)">
+          <span class="ui-pick-icon" aria-hidden="true">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M7 4h10v16H7zM10 8h4M10 12h4M10 16h3" />
+            </svg>
+          </span>
+          <span class="min-w-0 flex-1">
+            <strong class="block text-lg text-slate-900">سال {{ fy.title }}</strong>
+            <span class="mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold" [class]="fy.status === 'OPEN' ? 'bg-emerald-50 text-emerald-800' : 'bg-slate-100 text-slate-500'">
+              {{ fy.status === 'OPEN' ? 'سال فعال' : 'بسته' }}
+            </span>
+            <span class="mt-2 block text-sm text-slate-500">
+              {{ formatJalali(fy.startDate) }} تا {{ formatJalali(fy.endDate) }}
+            </span>
+            <span class="ui-pick-go">
+              ورود به سامانه
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M15 5l-7 7 7 7" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </span>
+          </span>
+        </button>
+      }
+    </div>
+  }
+</app-gate-frame>

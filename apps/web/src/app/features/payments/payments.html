@@ -1,0 +1,144 @@
+<section class="ui-page">
+  <div class="ui-page-head">
+    <div>
+      <h1 class="ui-title">پرداخت هزینه‌ها</h1>
+      <p class="ui-muted">ثبت هزینه‌های ساختمان در سال مالی انتخاب‌شده</p>
+    </div>
+    <button class="ui-btn-primary w-full sm:w-auto" type="button" (click)="openForm()">ثبت پرداخت</button>
+  </div>
+
+  @if (loading()) {
+    <app-skeleton kind="list" />
+  } @else if (!rows().length) {
+    <div class="ui-empty">
+      <p>پرداختی در این سال مالی ثبت نشده است.</p>
+      <button class="ui-btn-primary mt-4" type="button" (click)="openForm()">ثبت پرداخت</button>
+    </div>
+  } @else {
+    <div class="ui-cards">
+      @for (row of rows(); track row.id) {
+        <article class="ui-card flex items-start justify-between gap-3">
+          <div>
+            <p class="font-bold text-slate-900">{{ row.number }}</p>
+            <p class="ui-muted">{{ formatJalali(row.date) }} · {{ categoryLabel(row.category) }}</p>
+            <p class="text-sm text-slate-500">{{ row.payee || 'بدون ذینفع' }}</p>
+          </div>
+          <div class="flex flex-col items-end gap-2">
+            <p class="ui-money font-semibold">{{ formatMoney(row.amount) }}</p>
+            <button class="ui-btn-ghost h-9 px-3" type="button" (click)="openEdit(row)">ویرایش</button>
+          </div>
+        </article>
+      }
+    </div>
+    <div class="ui-table-wrap ui-table-desktop">
+      <table class="ui-table">
+        <thead>
+          <tr>
+            <th>شماره</th>
+            <th>تاریخ</th>
+            <th>سرفصل</th>
+            <th>ذینفع</th>
+            <th>مبلغ</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.id) {
+            <tr>
+              <td>{{ row.number }}</td>
+              <td>{{ formatJalali(row.date) }}</td>
+              <td>{{ categoryLabel(row.category) }}</td>
+              <td>{{ row.payee }}</td>
+              <td class="ui-money">{{ formatMoney(row.amount) }}</td>
+              <td class="w-px">
+                <div class="ui-row-actions">
+                  <app-icon-action icon="edit" label="ویرایش" (click)="openEdit(row)" />
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <app-pager [(page)]="page" [(size)]="pageSize" [total]="total()" (changed)="loadList()" />
+  }
+
+  <app-form-rail
+    [(open)]="formOpen"
+    [title]="editingId() ? 'ویرایش پرداخت' : 'ثبت پرداخت'"
+    [subtitle]="editingId() ? 'جزئیات این هزینه را اصلاح کنید' : 'هزینه ساختمان در سال مالی جاری'"
+  >
+    <form class="flex min-h-0 flex-1 flex-col" [formGroup]="form" (ngSubmit)="save()">
+      <div class="ui-form-scroll">
+        <label class="ui-field">
+          <span class="ui-label">سرفصل</span>
+          <select class="ui-input" formControlName="categoryId">
+            @for (c of categories(); track c.id) {
+              <option [value]="c.id">{{ categoryLabel(c) }}</option>
+            }
+          </select>
+        </label>
+        <button class="ui-btn-ghost h-9 self-start px-3" type="button" (click)="categoryOpen.set(true)">
+          سرفصل جدید
+        </button>
+        <label class="ui-field">
+          <span class="ui-label">تاریخ شمسی</span>
+          <app-jalali-datepicker formControlName="date" />
+        </label>
+        <label class="ui-field">
+          <span class="ui-label">مبلغ</span>
+          <app-money-input formControlName="amount" />
+        </label>
+        <label class="ui-field">
+          <span class="ui-label">ذینفع</span>
+          <input class="ui-input" formControlName="payee" placeholder="شرکت برق / نگهبان / ..." />
+        </label>
+        <label class="ui-field">
+          <span class="ui-label">روش پرداخت</span>
+          <select class="ui-input" formControlName="paymentMethod">
+            <option value="CASH">نقد</option>
+            <option value="TRANSFER">واریز</option>
+            <option value="CARD">کارتخوان</option>
+            <option value="OTHER">سایر</option>
+          </select>
+        </label>
+        <label class="ui-field">
+          <span class="ui-label">شرح</span>
+          <input class="ui-input" formControlName="description" />
+        </label>
+      </div>
+      <div class="ui-form-actions">
+        <button class="ui-btn-ghost flex-1" type="button" (click)="formOpen.set(false)">انصراف</button>
+        <button class="ui-btn-primary flex-1" type="submit" [disabled]="saving()">
+          <app-busy [on]="saving()" busyText="در حال ذخیره...">{{ editingId() ? 'ذخیره' : 'ثبت پرداخت' }}</app-busy>
+        </button>
+      </div>
+    </form>
+  </app-form-rail>
+
+  <app-form-modal [(open)]="categoryOpen" title="سرفصل جدید">
+    <form class="space-y-4 px-5 py-4" [formGroup]="form" (ngSubmit)="addCategory()">
+      <label class="ui-field">
+        <span class="ui-label">نام سرفصل</span>
+        <input class="ui-input" formControlName="newCategory" placeholder="آب، برق، حقوق نگهبان" />
+      </label>
+      <label class="ui-field">
+        <span class="ui-label">زیرمجموعه</span>
+        <select class="ui-input" formControlName="parentId">
+          <option value="">سرفصل اصلی</option>
+          @for (c of categories(); track c.id) {
+            @if (!c.parentId) {
+              <option [value]="c.id">{{ c.name }}</option>
+            }
+          }
+        </select>
+      </label>
+      <div class="ui-form-actions px-0 pb-0">
+        <button class="ui-btn-ghost flex-1" type="button" (click)="categoryOpen.set(false)">انصراف</button>
+        <button class="ui-btn-primary flex-1" type="submit" [disabled]="addingCategory()">
+          <app-busy [on]="addingCategory()" busyText="در حال افزودن...">افزودن سرفصل</app-busy>
+        </button>
+      </div>
+    </form>
+  </app-form-modal>
+</section>

@@ -1,0 +1,39 @@
+<div class="h-full overflow-y-auto mx-auto max-w-5xl p-6 text-slate-800">
+  <button class="ui-btn-primary no-print mb-6" type="button" (click)="print()" [disabled]="loading()">چاپ</button>
+  @if (loading()) {
+    <app-skeleton kind="print" [rows]="10" />
+  } @else if (data(); as d) {
+    <header class="mb-6 flex items-center gap-4 border-b border-slate-200 pb-4">
+      @if (ctx.building()?.logoUrl) {
+        <img class="h-14 w-14 rounded-xl object-cover" [src]="ctx.building()?.logoUrl + '?v=' + (ctx.building()?.updatedAt || '')" alt="" />
+      }
+      <div>
+        <h1 class="text-2xl font-bold">گزارش پرداخت هزینه‌ها</h1>
+        <p class="mt-2 text-sm text-slate-500">{{ ctx.building()?.name }} — سال مالی {{ d.fiscalYear?.title }} — تاریخ چاپ {{ today }}</p>
+      </div>
+    </header>
+    <table class="w-full border-collapse text-right text-sm">
+      <thead>
+        <tr>
+          <th class="border border-slate-200 bg-slate-50 px-2 py-2">شماره</th>
+          <th class="border border-slate-200 bg-slate-50 px-2 py-2">تاریخ</th>
+          <th class="border border-slate-200 bg-slate-50 px-2 py-2">سرفصل</th>
+          <th class="border border-slate-200 bg-slate-50 px-2 py-2">ذینفع</th>
+          <th class="border border-slate-200 bg-slate-50 px-2 py-2">مبلغ</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of d.items; track row.id) {
+          <tr>
+            <td class="border border-slate-200 px-2 py-2">{{ row.number }}</td>
+            <td class="border border-slate-200 px-2 py-2">{{ formatJalali(row.date) }}</td>
+            <td class="border border-slate-200 px-2 py-2">{{ row.categoryPath }}</td>
+            <td class="border border-slate-200 px-2 py-2">{{ row.payee }}</td>
+            <td class="border border-slate-200 px-2 py-2">{{ formatMoney(row.amount) }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    <p class="mt-4 font-semibold">جمع کل: {{ formatMoney(d.total) }}</p>
+  }
+</div>

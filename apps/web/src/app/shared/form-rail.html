@@ -1,0 +1,33 @@
+@if (open()) {
+  <button
+    class="ui-overlay"
+    type="button"
+    (click)="close()"
+    aria-label="بستن"
+    animate.enter="ui-overlay-enter"
+    animate.leave="ui-overlay-leave"
+  ></button>
+  <aside
+    class="ui-rail"
+    [class.ui-rail-wide]="wide()"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-label]="title()"
+    animate.enter="ui-rail-enter"
+    animate.leave="ui-rail-leave"
+  >
+    <div class="mx-auto mt-2 h-1.5 w-12 shrink-0 rounded-full bg-slate-200 lg:hidden"></div>
+    <header class="flex shrink-0 items-start justify-between gap-3 border-b border-slate-100 px-5 py-4">
+      <div class="min-w-0">
+        <h2 class="text-lg font-bold text-slate-900">{{ title() }}</h2>
+        @if (subtitle()) {
+          <p class="ui-muted mt-1">{{ subtitle() }}</p>
+        }
+      </div>
+      <button class="ui-btn-ghost h-10 w-10 shrink-0 px-0" type="button" (click)="close()" aria-label="بستن">✕</button>
+    </header>
+    <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <ng-content />
+    </div>
+  </aside>
+}

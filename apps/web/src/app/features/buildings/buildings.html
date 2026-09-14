@@ -1,0 +1,124 @@
+<section class="ui-page">
+  <div class="ui-page-head">
+    <div>
+      <h1 class="ui-title">ساختمان‌ها</h1>
+      <p class="ui-muted">فقط ساختمان‌هایی که عضو آن هستید اینجا دیده می‌شوند.</p>
+    </div>
+    <button class="ui-btn-primary w-full sm:w-auto" type="button" (click)="openForm()">افزودن ساختمان</button>
+  </div>
+
+  @if (loading()) {
+    <app-skeleton kind="list" />
+  } @else if (!rows().length) {
+    <div class="ui-empty">
+      <p>ساختمانی برای نمایش وجود ندارد.</p>
+      <button class="ui-btn-primary mt-4" type="button" (click)="openForm()">افزودن ساختمان</button>
+    </div>
+  } @else {
+    <div class="ui-cards">
+      @for (row of rows(); track row.id) {
+        <article class="ui-card space-y-3">
+          <div class="flex items-start gap-3">
+            <app-building-logo [url]="row.logoUrl" [updatedAt]="row.updatedAt" [alt]="row.name" />
+            <div class="min-w-0">
+              <p class="text-lg font-bold text-slate-900">{{ row.name }}</p>
+              <p class="ui-muted">{{ row.address || 'بدون آدرس' }}</p>
+            </div>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-slate-500">{{ row.managerName || 'بدون مدیر' }}</span>
+            <div class="flex flex-wrap gap-2">
+              <button class="ui-btn-ghost h-9 px-3" type="button" (click)="openEdit(row)">ویرایش</button>
+              <button class="ui-btn-ghost h-9 px-3" type="button" (click)="open(row)">ورود</button>
+            </div>
+          </div>
+        </article>
+      }
+    </div>
+    <div class="ui-table-wrap ui-table-desktop">
+      <table class="ui-table">
+        <thead>
+          <tr>
+            <th>نام</th>
+            <th>آدرس</th>
+            <th>مدیر</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.id) {
+            <tr>
+              <td>
+                <div class="flex items-center gap-3">
+                  <app-building-logo size="sm" [url]="row.logoUrl" [updatedAt]="row.updatedAt" [alt]="row.name" />
+                  <span>
+                    {{ row.name }}
+                    @if (ctx.buildingId() === row.id) {
+                      <span class="ui-muted">(فعال)</span>
+                    }
+                  </span>
+                </div>
+              </td>
+              <td>{{ row.address }}</td>
+              <td>{{ row.managerName }}</td>
+              <td class="w-px">
+                <div class="ui-row-actions">
+                  <app-icon-action icon="edit" label="ویرایش" (click)="openEdit(row)" />
+                  <app-icon-action icon="enter" label="ورود" (click)="open(row)" />
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <app-pager [(page)]="page" [(size)]="pageSize" [total]="total()" (changed)="loadList()" />
+  }
+
+  <app-form-rail
+    [(open)]="formOpen"
+    [title]="editingId() ? 'ویرایش ساختمان' : 'افزودن ساختمان'"
+    [subtitle]="editingId() ? 'مشخصات این ساختمان را اصلاح کنید' : 'بعد از ایجاد، وارد همین ساختمان می‌شوید'"
+  >
+    <form class="flex min-h-0 flex-1 flex-col" [formGroup]="form" (ngSubmit)="save()">
+      <div class="ui-form-scroll">
+        <div class="flex flex-wrap items-center gap-3">
+          @if (pendingPreview()) {
+            <span class="ui-logo ui-logo-lg"><img [src]="pendingPreview()" alt="" /></span>
+          } @else {
+            <app-building-logo size="lg" [url]="editingLogoUrl()" [updatedAt]="editingUpdatedAt()" [alt]="form.controls.name.value" />
+          }
+          <button class="ui-btn-ghost h-9 px-3" type="button" [disabled]="savingLogo()" (click)="cropper()?.browse()">
+            <app-busy [on]="savingLogo()" busyText="در حال آپلود...">انتخاب لوگو</app-busy>
+          </button>
+          @if (pendingPreview() || editingLogoUrl()) {
+            <button class="ui-btn-ghost h-9 px-3" type="button" [disabled]="savingLogo()" (click)="clearLogo()">حذف</button>
+          }
+        </div>
+        <label class="ui-field">
+          <span class="ui-label">نام ساختمان</span>
+          <input class="ui-input" formControlName="name" />
+        </label>
+        <label class="ui-field">
+          <span class="ui-label">آدرس</span>
+          <input class="ui-input" formControlName="address" />
+        </label>
+        <label class="ui-field">
+          <span class="ui-label">مدیر</span>
+          <input class="ui-input" formControlName="managerName" />
+        </label>
+        <label class="ui-field">
+          <span class="ui-label">تلفن</span>
+          <input class="ui-input" formControlName="phone" dir="ltr" />
+        </label>
+      </div>
+      <div class="ui-form-actions">
+        <button class="ui-btn-ghost flex-1" type="button" (click)="formOpen.set(false)">انصراف</button>
+        <button class="ui-btn-primary flex-1" type="submit" [disabled]="saving()">
+          <app-busy [on]="saving()" busyText="در حال ذخیره...">{{ editingId() ? 'ذخیره' : 'ایجاد و ادامه' }}</app-busy>
+        </button>
+      </div>
+    </form>
+  </app-form-rail>
+  <app-logo-cropper (cropped)="onCropped($event)" />
+</section>

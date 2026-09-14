@@ -1,0 +1,89 @@
+<div class="flex h-full overflow-hidden bg-slate-50">
+  @if (menuOpen()) {
+    <button
+      class="fixed inset-0 z-30 bg-slate-950/40 backdrop-blur-[2px] lg:hidden"
+      type="button"
+      (click)="closeMenu()"
+      aria-label="بستن منو"
+    ></button>
+  }
+
+  <aside
+    class="fixed inset-y-0 right-0 z-40 flex h-full w-72 max-w-[85vw] shrink-0 flex-col bg-ink-950 text-slate-200 shadow-2xl transition-transform duration-200 ease-out lg:static lg:z-0 lg:max-w-none lg:translate-x-0 lg:shadow-none print:hidden"
+    [class.max-lg:translate-x-0]="menuOpen()"
+    [class.max-lg:translate-x-full]="!menuOpen()"
+  >
+    <div class="border-b border-white/10 px-5 py-6">
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <p class="text-[11px] font-medium tracking-wide text-brand-200">سامانه حسابداری</p>
+          <h1 class="mt-1 text-lg font-bold text-white">حسابداری مهر</h1>
+        </div>
+        <button class="ui-btn-ghost h-9 w-9 border-white/10 bg-white/5 px-0 text-white lg:hidden" type="button" (click)="closeMenu()" aria-label="بستن">
+          ✕
+        </button>
+      </div>
+      <div class="mt-4 flex items-center gap-3 rounded-2xl bg-white/5 px-3 py-3">
+        <app-building-logo size="sm" [url]="ctx.building()?.logoUrl" [updatedAt]="ctx.building()?.updatedAt" [alt]="ctx.building()?.name || ''" />
+        <div class="min-w-0">
+          <p class="truncate text-sm font-semibold text-white">{{ ctx.building()?.name }}</p>
+          <p class="mt-1 truncate text-xs text-brand-100">سال مالی {{ ctx.fiscalYear()?.title }}</p>
+        </div>
+      </div>
+    </div>
+    <nav class="min-h-0 flex-1 space-y-1 overflow-y-auto p-3">
+      @for (link of links(); track link.path) {
+        <a
+          [routerLink]="link.path"
+          routerLinkActive="bg-white/10 text-white"
+          [routerLinkActiveOptions]="{ exact: false }"
+          (click)="closeMenu()"
+          class="flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white"
+        >
+          <svg class="h-5 w-5 shrink-0 opacity-80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <path [attr.d]="link.icon" />
+          </svg>
+          {{ link.label }}
+        </a>
+      }
+    </nav>
+    <div class="space-y-3 border-t border-white/10 p-4">
+      <div class="flex items-center gap-3">
+        <span class="flex h-10 w-10 items-center justify-center rounded-full bg-brand-700 text-sm font-bold text-white">
+          {{ initial() }}
+        </span>
+        <div class="min-w-0">
+          <p class="truncate text-sm font-semibold text-white">{{ auth.user()?.name }}</p>
+          <p class="truncate text-xs text-slate-400">{{ auth.user()?.email }}</p>
+        </div>
+      </div>
+      <button class="ui-btn-ghost w-full border-white/10 bg-white/5 text-slate-200 hover:bg-white/10" type="button" (click)="changeBuilding()">
+        تغییر ساختمان
+      </button>
+      <button class="ui-btn-ghost w-full border-white/10 bg-white/5 text-slate-200 hover:bg-white/10" type="button" (click)="changeFiscalYear()">
+        تغییر سال مالی
+      </button>
+    </div>
+  </aside>
+
+  <div class="flex min-h-0 min-w-0 flex-1 flex-col">
+    <header class="z-20 flex shrink-0 items-center gap-3 border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur print:hidden sm:px-6">
+      <button class="ui-btn-ghost h-10 w-10 px-0 lg:hidden" type="button" (click)="menuOpen.set(true)" aria-label="منو">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+          <path d="M4 7h16M4 12h16M4 17h16" />
+        </svg>
+      </button>
+      <app-building-logo size="sm" [url]="ctx.building()?.logoUrl" [updatedAt]="ctx.building()?.updatedAt" [alt]="ctx.building()?.name || ''" />
+      <div class="min-w-0 flex-1">
+        <p class="truncate text-sm font-semibold text-slate-900">{{ ctx.building()?.name }}</p>
+        <p class="truncate text-xs text-slate-500">سال {{ ctx.fiscalYear()?.title }} · {{ auth.user()?.name }}</p>
+      </div>
+      <button class="ui-btn-ghost hidden h-10 sm:inline-flex" type="button" (click)="changeBuilding()">ساختمان</button>
+      <button class="ui-btn-ghost hidden h-10 sm:inline-flex" type="button" (click)="changeFiscalYear()">سال مالی</button>
+      <button class="ui-btn-ghost h-10" type="button" (click)="auth.logout()">خروج</button>
+    </header>
+    <main class="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+      <router-outlet />
+    </main>
+  </div>
+</div>

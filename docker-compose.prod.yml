@@ -1,0 +1,53 @@
+# Portainer stack: set DOCKERHUB_USERNAME, POSTGRES_PASSWORD, JWT_SECRET.
+# Optional: WEB_PORT (default 80), JWT_EXPIRES_IN (default 7d).
+# Use an alphanumeric POSTGRES_PASSWORD (avoid @ : / # in the URL).
+# After each GitHub Actions push, re-pull images (stack webhook or "Re-pull image and redeploy").
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: mehr_accounting
+    volumes:
+      - mehr_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d mehr_accounting']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    image: ${DOCKERHUB_USERNAME}/mehr-api:latest
+    pull_policy: always
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      API_HOST: 0.0.0.0
+      API_PORT: '3000'
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/mehr_accounting?schema=public
+      DIRECT_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/mehr_accounting?schema=public
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+    volumes:
+      - mehr_uploads:/app/uploads
+      - mehr_backups:/app/data/backups
+
+  web:
+    image: ${DOCKERHUB_USERNAME}/mehr-web:latest
+    pull_policy: always
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - '${WEB_PORT:-80}:80'
+
+volumes:
+  mehr_pg_data:
+  mehr_uploads:
+  mehr_backups:

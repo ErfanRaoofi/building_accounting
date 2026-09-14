@@ -1,0 +1,58 @@
+<section class="ui-page">
+  <div class="ui-page-head">
+    <div>
+      <h1 class="ui-title">گزارش پرداخت‌ها</h1>
+      <p class="ui-muted">هزینه‌های ثبت‌شده در سال مالی جاری</p>
+    </div>
+    <a class="ui-btn-primary w-full sm:w-auto" routerLink="/print/payments" target="_blank">چاپ</a>
+  </div>
+  @if (loading()) {
+    <app-skeleton kind="stats" />
+  } @else if (data(); as d) {
+    <div class="ui-card">
+      <p class="ui-muted">جمع پرداخت‌ها</p>
+      <p class="mt-1 ui-money text-2xl font-bold">{{ formatMoney(d.total) }}</p>
+    </div>
+    @if (!d.count) {
+      <p class="ui-empty">پرداختی در این سال مالی ثبت نشده است.</p>
+    } @else {
+      <div class="ui-cards">
+        @for (row of d.items; track row.id) {
+          <article class="ui-card flex items-start justify-between gap-3">
+            <div>
+              <p class="font-bold">{{ row.number }}</p>
+              <p class="ui-muted">{{ formatJalali(row.date) }} · {{ row.categoryPath }}</p>
+              <p class="text-sm text-slate-500">{{ row.payee || 'بدون ذینفع' }}</p>
+            </div>
+            <p class="ui-money font-semibold">{{ formatMoney(row.amount) }}</p>
+          </article>
+        }
+      </div>
+      <div class="ui-table-wrap ui-table-desktop">
+        <table class="ui-table">
+          <thead>
+            <tr>
+              <th>شماره</th>
+              <th>تاریخ</th>
+              <th>سرفصل</th>
+              <th>ذینفع</th>
+              <th>مبلغ</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of d.items; track row.id) {
+              <tr>
+                <td>{{ row.number }}</td>
+                <td>{{ formatJalali(row.date) }}</td>
+                <td>{{ row.categoryPath }}</td>
+                <td>{{ row.payee }}</td>
+                <td class="ui-money">{{ formatMoney(row.amount) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <app-pager [(page)]="page" [(size)]="pageSize" [total]="d.count" (changed)="load()" />
+    }
+  }
+</section>

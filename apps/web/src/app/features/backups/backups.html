@@ -1,0 +1,139 @@
+<section class="ui-page">
+  <div class="ui-page-head">
+    <div>
+      <h1 class="ui-title">بک‌آپ دیتابیس</h1>
+      <p class="ui-muted">نسخه کامل پایگاه داده روی همین سرور ذخیره می‌شود. دانلود و بازیابی فقط برای مدیر سیستم است.</p>
+    </div>
+    <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+      <button class="ui-btn-ghost w-full sm:w-auto" type="button" [disabled]="uploading()" (click)="pickFile()">
+        <app-busy [on]="uploading()" busyText="در حال آپلود...">آپلود فایل بک‌آپ</app-busy>
+      </button>
+      <button class="ui-btn-primary w-full sm:w-auto" type="button" [disabled]="creating()" (click)="createNow()">
+        <app-busy [on]="creating()" busyText="در حال تهیه...">تهیه بک‌آپ الان</app-busy>
+      </button>
+    </div>
+  </div>
+  <input #fileInput class="hidden" type="file" accept=".dump,.backup" (change)="onFile($event)" />
+
+  <form class="ui-card ui-grid" [formGroup]="settingsForm" (ngSubmit)="saveSettings()">
+    <div class="ui-span">
+      <h2 class="text-lg font-bold">زمان‌بندی خودکار</h2>
+      <p class="ui-muted mt-1">بک‌آپ زمان‌بندی‌شده در ساعت انتخابی به وقت تهران اجرا می‌شود. هفتگی: شنبه‌ها. ماهانه: روز اول ماه میلادی.</p>
+    </div>
+    <label class="flex items-center gap-3 sm:col-span-2">
+      <input class="ui-check" type="checkbox" formControlName="enabled" />
+      <span class="text-sm font-medium text-slate-700">بک‌آپ خودکار فعال باشد</span>
+    </label>
+    <label class="ui-field">
+      <span class="ui-label">دوره</span>
+      <select class="ui-input" formControlName="frequency">
+        <option value="DAILY">روزانه</option>
+        <option value="WEEKLY">هفتگی</option>
+        <option value="MONTHLY">ماهانه</option>
+      </select>
+    </label>
+    <label class="ui-field">
+      <span class="ui-label">ساعت اجرا</span>
+      <select class="ui-input" formControlName="hour">
+        @for (hour of hours; track hour) {
+          <option [ngValue]="hour">{{ hourLabel(hour) }}</option>
+        }
+      </select>
+    </label>
+    <label class="ui-field">
+      <span class="ui-label">تعداد نگه‌داری زمان‌بندی‌شده</span>
+      <input class="ui-input" type="number" min="1" max="365" formControlName="keepLast" />
+    </label>
+    <div class="ui-span">
+      <button class="ui-btn-primary" type="submit" [disabled]="savingSettings()">
+        <app-busy [on]="savingSettings()">ذخیره زمان‌بندی</app-busy>
+      </button>
+    </div>
+  </form>
+
+  @if (loading() && !rows().length) {
+    <app-skeleton kind="list" />
+  } @else if (!rows().length) {
+    <div class="ui-empty">
+      <p>هنوز بک‌آپی ثبت نشده است.</p>
+      <button class="ui-btn-primary mt-4" type="button" (click)="createNow()">تهیه بک‌آپ الان</button>
+    </div>
+  } @else {
+    <div class="ui-cards">
+      @for (row of rows(); track row.id) {
+        <article class="ui-card space-y-3">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <p class="font-bold text-slate-900">{{ row.filename }}</p>
+              <p class="ui-muted">{{ formatJalali(row.createdAt) }} · {{ kindLabel(row.kind) }} · {{ statusLabel(row.status) }}</p>
+              <p class="text-sm text-slate-500">{{ formatSize(row.sizeBytes) }}@if (row.createdBy?.name) { · {{ row.createdBy?.name }} }</p>
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button class="ui-btn-ghost h-9 px-3" type="button" [disabled]="row.status !== 'READY' || busy('download', row.id)" (click)="download(row)">
+              <app-busy [on]="busy('download', row.id)" busyText="دانلود...">دانلود</app-busy>
+            </button>
+            <button class="ui-btn-ghost h-9 px-3" type="button" [disabled]="row.status !== 'READY'" (click)="openRestore(row)">بازیابی</button>
+            <button class="ui-btn-danger h-9 px-3" type="button" [disabled]="!!actionId()" (click)="remove(row)">حذف</button>
+          </div>
+        </article>
+      }
+    </div>
+    <div class="ui-table-wrap ui-table-desktop">
+      <table class="ui-table">
+        <thead>
+          <tr>
+            <th>فایل</th>
+            <th>تاریخ</th>
+            <th>نوع</th>
+            <th>وضعیت</th>
+            <th>حجم</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.id) {
+            <tr>
+              <td class="font-semibold">{{ row.filename }}</td>
+              <td>{{ formatJalali(row.createdAt) }}</td>
+              <td>{{ kindLabel(row.kind) }}</td>
+              <td>
+                <span [class]="row.status === 'READY' ? 'ui-chip-paid' : 'ui-chip-unpaid'">{{ statusLabel(row.status) }}</span>
+              </td>
+              <td>{{ formatSize(row.sizeBytes) }}</td>
+              <td class="w-px">
+                <div class="ui-row-actions">
+                  <app-icon-action icon="download" label="دانلود" [disabled]="row.status !== 'READY' || busy('download', row.id)" [busy]="busy('download', row.id)" (click)="download(row)" />
+                  <app-icon-action icon="restore" label="بازیابی" [disabled]="row.status !== 'READY'" (click)="openRestore(row)" />
+                  <app-icon-action icon="trash" label="حذف" [danger]="true" [disabled]="!!actionId()" [busy]="busy('delete', row.id)" (click)="remove(row)" />
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <app-pager [(page)]="page" [(size)]="pageSize" [total]="total()" itemLabel="بک‌آپ" (changed)="loadList()" />
+  }
+
+  <app-form-modal [(open)]="restoreOpen" title="بازیابی دیتابیس">
+    <div class="space-y-4 px-5 py-4">
+      <p class="rounded-xl bg-rose-50 px-3 py-2 text-sm font-medium text-rose-800">
+        دیتابیس فعلی به‌طور کامل با این بک‌آپ جایگزین می‌شود. این کار برگشت‌ناپذیر است و نشست‌های باز ممکن است خطا بدهند.
+      </p>
+      @if (restoreTarget(); as row) {
+        <p class="text-sm text-slate-600">{{ row.filename }} · {{ formatJalali(row.createdAt) }}</p>
+      }
+      <label class="flex items-start gap-3">
+        <input class="ui-check mt-1" type="checkbox" [checked]="restoreAck()" (change)="restoreAck.set($any($event.target).checked)" />
+        <span class="text-sm text-slate-700">می‌دانم دیتابیس فعلی جایگزین می‌شود</span>
+      </label>
+    </div>
+    <div class="ui-form-actions">
+      <button class="ui-btn-ghost flex-1" type="button" (click)="restoreOpen.set(false)">انصراف</button>
+      <button class="ui-btn-danger flex-1" type="button" [disabled]="!restoreAck() || restoring()" (click)="confirmRestore()">
+        <app-busy [on]="restoring()" busyText="در حال بازیابی...">بازیابی</app-busy>
+      </button>
+    </div>
+  </app-form-modal>
+</section>

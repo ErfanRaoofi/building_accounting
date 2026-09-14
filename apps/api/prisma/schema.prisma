@@ -1,0 +1,324 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum BuildingRole {
+  MANAGER
+  ACCOUNTANT
+  BOARD
+  RESIDENT
+}
+
+enum SignupStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum FiscalYearStatus {
+  OPEN
+  CLOSED
+}
+
+enum OccupancyStatus {
+  OCCUPIED
+  VACANT
+}
+
+enum ChargeInvoiceStatus {
+  UNPAID
+  PARTIAL
+  PAID
+}
+
+enum ReceiptKind {
+  CHARGE
+  ENTRANCE
+  OTHER
+}
+
+enum PaymentMethod {
+  CASH
+  TRANSFER
+  CARD
+  OTHER
+}
+
+enum BackupFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum BackupKind {
+  MANUAL
+  SCHEDULED
+  UPLOAD
+}
+
+enum BackupStatus {
+  READY
+  FAILED
+}
+
+model User {
+  id               String           @id @default(uuid())
+  email            String           @unique
+  passwordHash     String
+  name             String
+  isSuperAdmin     Boolean          @default(false)
+  isActive         Boolean          @default(true)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  accesses         BuildingAccess[]
+  unitResidencies  UnitResident[]
+  receipts         Receipt[]        @relation("ReceiptCreatedBy")
+  payments         Payment[]        @relation("PaymentCreatedBy")
+  backups          Backup[]         @relation("BackupCreatedBy")
+  reviewedSignups  SignupRequest[]  @relation("SignupReviewedBy")
+}
+
+model Building {
+  id                 String             @id @default(uuid())
+  name               String
+  address            String?
+  managerName        String?
+  phone              String?
+  logoUrl            String?
+  isActive           Boolean            @default(true)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  fiscalYears        FiscalYear[]
+  tariffs            ChargeTariff[]
+  units              Unit[]
+  receiptTypes       ReceiptType[]
+  receipts           Receipt[]
+  expenseCategories  ExpenseCategory[]
+  payments           Payment[]
+  accesses           BuildingAccess[]
+  signupRequests     SignupRequest[]
+}
+
+model BuildingAccess {
+  userId     String
+  buildingId String
+  roles      BuildingRole[] @default([])
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  building   Building       @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+
+  @@id([userId, buildingId])
+}
+
+model UnitResident {
+  userId String
+  unitId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  unit   Unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+
+  @@id([userId, unitId])
+}
+
+model SignupRequest {
+  id            String       @id @default(uuid())
+  email         String
+  name          String
+  passwordHash  String
+  buildingId    String
+  requestedRole BuildingRole
+  status        SignupStatus @default(PENDING)
+  note          String?
+  reviewedById  String?
+  reviewedAt    DateTime?
+  createdAt     DateTime     @default(now())
+  building      Building     @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  reviewedBy    User?        @relation("SignupReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([status, buildingId])
+  @@index([email, buildingId])
+}
+
+model FiscalYear {
+  id          String           @id @default(uuid())
+  buildingId  String
+  title       String
+  startDate   DateTime         @db.Date
+  endDate     DateTime         @db.Date
+  status      FiscalYearStatus @default(OPEN)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  building    Building         @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  invoices    ChargeInvoice[]
+  receipts    Receipt[]
+  payments    Payment[]
+
+  @@unique([buildingId, title])
+}
+
+model ChargeTariff {
+  id            String   @id @default(uuid())
+  buildingId    String
+  name          String
+  monthlyAmount Decimal  @db.Decimal(18, 0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  building      Building @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  units         Unit[]
+
+  @@unique([buildingId, name])
+}
+
+model Unit {
+  id                  String           @id @default(uuid())
+  buildingId          String
+  number              String
+  floor               Int?
+  area                Decimal?         @db.Decimal(10, 2)
+  bedrooms            Int?
+  occupancy           OccupancyStatus  @default(OCCUPIED)
+  ownerName           String?
+  residentName        String?
+  phone               String?
+  tariffId            String?
+  customMonthlyCharge Decimal?         @db.Decimal(18, 0)
+  isActive            Boolean          @default(true)
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  building            Building         @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  tariff              ChargeTariff?    @relation(fields: [tariffId], references: [id], onDelete: SetNull)
+  invoices            ChargeInvoice[]
+  receipts            Receipt[]
+  residents           UnitResident[]
+
+  @@unique([buildingId, number])
+}
+
+model ChargeInvoice {
+  id            String              @id @default(uuid())
+  unitId        String
+  fiscalYearId  String
+  jalaliYear    Int
+  jalaliMonth   Int
+  amount        Decimal             @db.Decimal(18, 0)
+  paidAmount    Decimal             @default(0) @db.Decimal(18, 0)
+  status        ChargeInvoiceStatus @default(UNPAID)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  unit          Unit                @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  fiscalYear    FiscalYear          @relation(fields: [fiscalYearId], references: [id], onDelete: Cascade)
+  lines         ReceiptLine[]
+
+  @@unique([unitId, fiscalYearId, jalaliYear, jalaliMonth])
+  @@index([fiscalYearId, status])
+}
+
+model ReceiptType {
+  id         String      @id @default(uuid())
+  buildingId String
+  name       String
+  kind       ReceiptKind
+  isSystem   Boolean     @default(false)
+  createdAt  DateTime    @default(now())
+  building   Building    @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  receipts   Receipt[]
+
+  @@unique([buildingId, name])
+}
+
+model Receipt {
+  id            String        @id @default(uuid())
+  buildingId    String
+  fiscalYearId  String
+  receiptTypeId String
+  unitId        String?
+  number        String
+  date          DateTime      @db.Date
+  totalAmount   Decimal       @db.Decimal(18, 0)
+  paymentMethod PaymentMethod @default(CASH)
+  description   String?
+  createdById   String
+  createdAt     DateTime      @default(now())
+  building      Building      @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  fiscalYear    FiscalYear    @relation(fields: [fiscalYearId], references: [id], onDelete: Cascade)
+  receiptType   ReceiptType   @relation(fields: [receiptTypeId], references: [id], onDelete: Restrict)
+  unit          Unit?         @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  createdBy     User          @relation("ReceiptCreatedBy", fields: [createdById], references: [id])
+  lines         ReceiptLine[]
+
+  @@unique([buildingId, fiscalYearId, number])
+  @@index([buildingId, fiscalYearId, date])
+}
+
+model ReceiptLine {
+  id              String         @id @default(uuid())
+  receiptId       String
+  chargeInvoiceId String?
+  amount          Decimal        @db.Decimal(18, 0)
+  description     String?
+  receipt         Receipt        @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+  chargeInvoice   ChargeInvoice? @relation(fields: [chargeInvoiceId], references: [id], onDelete: Restrict)
+}
+
+model ExpenseCategory {
+  id         String            @id @default(uuid())
+  buildingId String
+  parentId   String?
+  name       String
+  createdAt  DateTime          @default(now())
+  building   Building          @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  parent     ExpenseCategory?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children   ExpenseCategory[] @relation("CategoryTree")
+  payments   Payment[]
+
+  @@unique([buildingId, parentId, name])
+}
+
+model Payment {
+  id            String          @id @default(uuid())
+  buildingId    String
+  fiscalYearId  String
+  categoryId    String
+  number        String
+  date          DateTime        @db.Date
+  amount        Decimal         @db.Decimal(18, 0)
+  payee         String?
+  paymentMethod PaymentMethod   @default(CASH)
+  description   String?
+  createdById   String
+  createdAt     DateTime        @default(now())
+  building      Building        @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  fiscalYear    FiscalYear      @relation(fields: [fiscalYearId], references: [id], onDelete: Cascade)
+  category      ExpenseCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  createdBy     User            @relation("PaymentCreatedBy", fields: [createdById], references: [id])
+
+  @@unique([buildingId, fiscalYearId, number])
+  @@index([buildingId, fiscalYearId, date])
+}
+
+model BackupSettings {
+  id        String          @id @default("default")
+  enabled   Boolean         @default(false)
+  frequency BackupFrequency @default(DAILY)
+  hour      Int             @default(2)
+  keepLast  Int             @default(14)
+  updatedAt DateTime        @updatedAt
+}
+
+model Backup {
+  id          String       @id @default(uuid())
+  filename    String
+  sizeBytes   Int          @default(0)
+  kind        BackupKind
+  status      BackupStatus @default(READY)
+  createdAt   DateTime     @default(now())
+  createdById String?
+  createdBy   User?        @relation("BackupCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+}

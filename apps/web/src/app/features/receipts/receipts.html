@@ -1,0 +1,279 @@
+<section class="ui-page">
+  <div class="ui-page-head">
+    <div>
+      <h1 class="ui-title">دریافت‌ها</h1>
+      <p class="ui-muted">ثبت دریافت شارژ چندماهه یا سایر وجوه برای واحدها</p>
+    </div>
+    <button class="ui-btn-primary w-full sm:w-auto" type="button" (click)="openForm()">ثبت دریافت</button>
+  </div>
+
+  <label class="ui-field max-w-xl">
+    <span class="ui-label">جستجو</span>
+    <input
+      class="ui-input"
+      [value]="search()"
+      (input)="onSearch($any($event.target).value)"
+      placeholder="واحد، شماره سند، مالک، ماه..."
+    />
+  </label>
+
+  @if (loading() && !rows().length) {
+    <app-skeleton kind="list" />
+  } @else if (!rows().length) {
+    <div class="ui-empty">
+      @if (search().trim()) {
+        <p>نتیجه‌ای برای این جستجو پیدا نشد.</p>
+      } @else {
+        <p>دریافتی در این سال مالی ثبت نشده است.</p>
+        <button class="ui-btn-primary mt-4" type="button" (click)="openForm()">ثبت دریافت</button>
+      }
+    </div>
+  } @else {
+    <div class="ui-cards">
+      @for (row of rows(); track row.id; let i = $index) {
+        <article class="ui-card space-y-3">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <p class="text-xs text-slate-400">ردیف {{ rowNo(i) }}</p>
+              <p class="text-lg font-bold text-slate-900">واحد {{ row.unit?.number || '—' }}</p>
+              <p class="ui-muted">{{ row.monthsLabel }}</p>
+              <p class="mt-1 text-sm text-slate-500">{{ row.number }} · ایجاد {{ formatJalali(row.createdAt) }}</p>
+            </div>
+            <p class="ui-money font-semibold">{{ formatMoney(row.totalAmount) }}</p>
+          </div>
+          <button class="ui-btn-ghost h-9 px-3" type="button" (click)="openDetail(row)">مشاهده جزئیات</button>
+        </article>
+      }
+    </div>
+    <div class="ui-table-wrap ui-table-desktop">
+      <table class="ui-table">
+        <thead>
+          <tr>
+            <th>ردیف</th>
+            <th>واحد</th>
+            <th>شماره</th>
+            <th>تاریخ سند</th>
+            <th>تاریخ ایجاد</th>
+            <th>پوشش</th>
+            <th>مبلغ</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.id; let i = $index) {
+            <tr>
+              <td>{{ rowNo(i) }}</td>
+              <td class="font-semibold">{{ row.unit?.number || '—' }}</td>
+              <td>{{ row.number }}</td>
+              <td>{{ formatJalali(row.date) }}</td>
+              <td>{{ formatJalali(row.createdAt) }}</td>
+              <td>{{ row.monthsLabel }}</td>
+              <td class="ui-money">{{ formatMoney(row.totalAmount) }}</td>
+              <td class="w-px">
+                <div class="ui-row-actions">
+                  <app-icon-action icon="view" label="مشاهده جزئیات" (click)="openDetail(row)" />
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <app-pager class="mt-3 block" [(page)]="page" [(size)]="pageSize" [total]="total()" itemLabel="دریافت" (changed)="loadList()" />
+  }
+
+  <app-form-rail [(open)]="formOpen" title="ثبت دریافت" subtitle="شارژ چندماهه یا سایر وجوه" [wide]="true">
+    <form class="flex min-h-0 flex-1 flex-col" [formGroup]="form" (ngSubmit)="save()">
+      <div class="ui-form-scroll">
+        <label class="ui-field">
+          <span class="ui-label">نوع دریافت</span>
+          <select class="ui-input" formControlName="receiptTypeId">
+            @for (t of types(); track t.id) {
+              <option [value]="t.id">{{ t.name }}</option>
+            }
+          </select>
+        </label>
+        <label class="ui-field">
+          <span class="ui-label">واحد</span>
+          <select class="ui-input" formControlName="unitId">
+            <option value="">بدون واحد</option>
+            @for (u of units(); track u.id) {
+              <option [value]="u.id">{{ u.number }} — {{ u.ownerName }}</option>
+            }
+          </select>
+        </label>
+        <label class="ui-field">
+          <span class="ui-label">تاریخ شمسی</span>
+          <app-jalali-datepicker formControlName="date" />
+        </label>
+        <label class="ui-field">
+          <span class="ui-label">روش پرداخت</span>
+          <select class="ui-input" formControlName="paymentMethod">
+            <option value="CASH">نقد</option>
+            <option value="TRANSFER">کارت به کارت / واریز</option>
+            <option value="CARD">کارتخوان</option>
+            <option value="OTHER">سایر</option>
+          </select>
+        </label>
+        <label class="ui-field">
+          <span class="ui-label">شرح</span>
+          <input class="ui-input" formControlName="description" />
+        </label>
+        @if (selectedType()?.kind !== 'CHARGE') {
+          <label class="ui-field">
+            <span class="ui-label">مبلغ</span>
+            <app-money-input formControlName="otherAmount" />
+          </label>
+        }
+        @if (selectedType()?.kind === 'CHARGE') {
+          <div class="space-y-3 rounded-2xl border border-slate-200 p-3">
+            @if (credit() > 0) {
+              <p class="rounded-xl bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800">
+                بستانکاری فعلی این واحد:
+                <span class="ui-money">{{ formatMoney(credit()) }}</span>
+              </p>
+            }
+            <label class="ui-field">
+              <span class="ui-label">مبلغ دریافتی</span>
+              <app-money-input formControlName="receivedAmount" />
+            </label>
+            <p class="text-sm text-slate-500">
+              ماه‌های باقی‌مانده سال مالی را انتخاب کنید. اگر مبلغ بیشتر باشد، مازاد بستانکار می‌ماند. اگر ماهی انتخاب نشود، کل مبلغ پیش‌پرداخت است و از قدیمی‌ترین ماه بدهکار می‌نشیند.
+            </p>
+            @if (prepaidAmount() > 0) {
+              <p class="rounded-xl bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800">
+                پیش‌پرداخت / بستانکار این سند:
+                <span class="ui-money">{{ formatMoney(prepaidAmount()) }}</span>
+              </p>
+            }
+            @if (invoicesLoading()) {
+              <app-skeleton kind="checks" [rows]="4" />
+            } @else if (!invoices().length) {
+              <p class="text-sm text-slate-500">برای این واحد شارژ سال مالی صادر نشده است؛ مبلغ به‌صورت پیش‌پرداخت می‌ماند.</p>
+            } @else {
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <p class="text-sm text-slate-500">
+                  جمع انتخاب‌شده:
+                  <strong class="ui-money text-slate-900">{{ formatMoney(selectedTotal()) }}</strong>
+                </p>
+                <div class="flex gap-2">
+                  @if (unpaidInvoices().length) {
+                    <button class="ui-btn-ghost h-8 px-3 text-xs" type="button" (click)="selectRemaining()">تا پایان سال</button>
+                  }
+                  @if (selectedTotal()) {
+                    <button class="ui-btn-ghost h-8 px-3 text-xs" type="button" (click)="clearSelection()">پاک کردن</button>
+                  }
+                </div>
+              </div>
+              <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                @for (row of invoices(); track row.id) {
+                  <label
+                    class="flex items-center justify-between gap-3 rounded-xl border p-3"
+                    [class.border-brand-600]="!!selected()[row.id]"
+                    [class.bg-brand-50]="!!selected()[row.id]"
+                    [class.border-slate-200]="!selected()[row.id]"
+                    [class.opacity-60]="row.remaining <= 0"
+                  >
+                    <span class="flex min-w-0 items-center gap-3">
+                      <input
+                        class="ui-check"
+                        type="checkbox"
+                        [disabled]="row.remaining <= 0"
+                        [checked]="!!selected()[row.id]"
+                        (change)="toggle(row.id, $any($event.target).checked)"
+                      />
+                      <span class="min-w-0">
+                        <span class="block font-semibold">{{ row.monthTitle }}</span>
+                        <span class="text-xs text-slate-500">{{ statusLabel(row.status) }}</span>
+                      </span>
+                    </span>
+                    <span class="ui-money shrink-0 text-sm font-semibold">{{ formatMoney(row.remaining) }}</span>
+                  </label>
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+      <div class="ui-form-actions">
+        <button class="ui-btn-ghost flex-1" type="button" (click)="formOpen.set(false)">انصراف</button>
+        <button class="ui-btn-primary flex-1" type="submit" [disabled]="saving()">
+          <app-busy [on]="saving()" busyText="در حال ثبت...">ثبت دریافت</app-busy>
+        </button>
+      </div>
+    </form>
+  </app-form-rail>
+
+  <app-form-modal [(open)]="detailOpen" title="جزئیات دریافت" [wide]="true">
+    @if (detail(); as row) {
+      <div class="max-h-[70vh] space-y-4 overflow-y-auto px-5 py-4">
+        <div class="grid grid-cols-2 gap-3 text-sm">
+          <div>
+            <p class="ui-label">واحد</p>
+            <p class="font-semibold text-slate-900">{{ row.unit?.number || '—' }}</p>
+            @if (row.unit?.ownerName) {
+              <p class="ui-muted">{{ row.unit.ownerName }}</p>
+            }
+          </div>
+          <div>
+            <p class="ui-label">شماره سند</p>
+            <p class="font-semibold text-slate-900">{{ row.number }}</p>
+          </div>
+          <div>
+            <p class="ui-label">تاریخ سند</p>
+            <p class="text-slate-800">{{ formatJalali(row.date) }}</p>
+          </div>
+          <div>
+            <p class="ui-label">تاریخ ایجاد</p>
+            <p class="text-slate-800">{{ formatJalali(row.createdAt) }}</p>
+          </div>
+          <div>
+            <p class="ui-label">نوع</p>
+            <p class="text-slate-800">{{ row.receiptType?.name }}</p>
+          </div>
+          <div>
+            <p class="ui-label">روش</p>
+            <p class="text-slate-800">{{ methodLabel(row.paymentMethod) }}</p>
+          </div>
+        </div>
+        <div>
+          <p class="ui-label">پوشش</p>
+          <p class="font-semibold text-slate-900">{{ row.monthsLabel }}</p>
+        </div>
+        @if (row.lines?.length) {
+          <div class="overflow-hidden rounded-2xl border border-slate-200">
+            <table class="ui-table">
+              <thead>
+                <tr>
+                  <th>شرح</th>
+                  <th>مبلغ</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (line of row.lines; track $index) {
+                  <tr>
+                    <td>{{ lineLabel(line, row) }}</td>
+                    <td class="ui-money">{{ formatMoney(line.amount) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+        @if (row.description) {
+          <div>
+            <p class="ui-label">شرح</p>
+            <p class="text-slate-800">{{ row.description }}</p>
+          </div>
+        }
+        <div class="flex items-center justify-between border-t border-slate-100 pt-3">
+          <span class="text-sm text-slate-500">ثبت‌کننده: {{ row.createdBy?.name || '—' }}</span>
+          <span class="ui-money text-base font-bold">{{ formatMoney(row.totalAmount) }}</span>
+        </div>
+      </div>
+      <div class="ui-form-actions">
+        <button class="ui-btn-primary w-full" type="button" (click)="detailOpen.set(false)">بستن</button>
+      </div>
+    }
+  </app-form-modal>
+</section>
