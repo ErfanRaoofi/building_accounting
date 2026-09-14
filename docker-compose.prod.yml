@@ -1,7 +1,14 @@
 # Portainer stack: set DOCKERHUB_USERNAME, POSTGRES_PASSWORD, JWT_SECRET.
-# Optional: WEB_PORT (default 80), JWT_EXPIRES_IN (default 7d).
+# Optional: WEB_PORT (default 8080), JWT_EXPIRES_IN (default 7d).
 # Use an alphanumeric POSTGRES_PASSWORD (avoid @ : / # in the URL).
-# After each GitHub Actions push, re-pull images (stack webhook or "Re-pull image and redeploy").
+#
+# Shared network for Nginx Proxy Manager:
+#   docker network create proxy
+# Attach the same external network named "proxy" to your NPM container/stack.
+# In NPM Proxy Host:
+#   Forward Hostname = building-accounting-web
+#   Forward Port = 80
+#   Scheme = http
 
 services:
   postgres:
@@ -18,6 +25,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+    networks:
+      - internal
 
   api:
     image: ${DOCKERHUB_USERNAME}/building-accounting-api:latest
@@ -48,17 +57,30 @@ services:
       timeout: 5s
       start_period: 90s
       retries: 12
+    networks:
+      - internal
 
   web:
     image: ${DOCKERHUB_USERNAME}/building-accounting-web:latest
+    container_name: building-accounting-web
     pull_policy: always
     restart: unless-stopped
     depends_on:
       - api
     ports:
-      - '${WEB_PORT:-80}:80'
+      - '${WEB_PORT:-8080}:80'
+    networks:
+      internal:
+      proxy:
+        aliases:
+          - building-accounting-web
 
 volumes:
   building_accounting_pg_data:
   building_accounting_uploads:
   building_accounting_backups:
+
+networks:
+  internal:
+  proxy:
+    external: true
