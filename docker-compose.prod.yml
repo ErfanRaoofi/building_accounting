@@ -7,7 +7,7 @@
 # NPM Proxy Host (Docker DNS — like hokm):
 #   Scheme               = http
 #   Forward Hostname/IP  = frontend
-#   Forward Port         = 4000
+#   Forward Port         = 4001
 #
 # DB password must be alphanumeric (avoid @ : / # in DATABASE_URL).
 
@@ -69,7 +69,7 @@ services:
     pull_policy: always
     restart: unless-stopped
     ports:
-      - '${FRONTEND_PORT:-4000}:4000'
+      - '${FRONTEND_PORT:-4001}:4001'
     depends_on:
       - backend
     networks:
