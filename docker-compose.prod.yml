@@ -10,11 +10,11 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: mehr_accounting
+      POSTGRES_DB: building_accounting
     volumes:
-      - mehr_pg_data:/var/lib/postgresql/data
+      - building_accounting_pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres -d mehr_accounting']
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d building_accounting']
       interval: 10s
       timeout: 5s
       retries: 10
@@ -29,25 +29,36 @@ services:
     environment:
       API_HOST: 0.0.0.0
       API_PORT: '3000'
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/mehr_accounting?schema=public
-      DIRECT_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/mehr_accounting?schema=public
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/building_accounting?schema=public
+      DIRECT_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/building_accounting?schema=public
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
     volumes:
-      - mehr_uploads:/app/uploads
-      - mehr_backups:/app/data/backups
+      - building_accounting_uploads:/app/uploads
+      - building_accounting_backups:/app/data/backups
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/api/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      start_period: 90s
+      retries: 12
 
   web:
     image: ${DOCKERHUB_USERNAME}/building-accounting-web:latest
     pull_policy: always
     restart: unless-stopped
     depends_on:
-      api:
-        condition: service_healthy
+      - api
     ports:
       - '${WEB_PORT:-80}:80'
 
 volumes:
-  mehr_pg_data:
-  mehr_uploads:
-  mehr_backups:
+  building_accounting_pg_data:
+  building_accounting_uploads:
+  building_accounting_backups:

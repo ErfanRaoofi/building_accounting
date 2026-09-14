@@ -31,8 +31,8 @@ RUN sed -i 's/\r$//' docker-entrypoint.sh \
   && npx prisma generate --schema ./prisma/schema.prisma \
   && mkdir -p /app/uploads/logos /app/data/backups \
   && chown -R node:node /app
-USER node
+# Run as root so mounted volumes (uploads/backups) are writable; entrypoint chowns them.
 EXPOSE 3000
-HEALTHCHECK --interval=15s --timeout=5s --start-period=40s --retries=10 \
+HEALTHCHECK --interval=15s --timeout=5s --start-period=90s --retries=12 \
   CMD node -e "fetch('http://127.0.0.1:3000/api/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 ENTRYPOINT ["./docker-entrypoint.sh"]
