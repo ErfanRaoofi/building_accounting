@@ -13,7 +13,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { toJalali } from '../common/jalali';
 import { paginateQuery, type Pagination } from '../common/pagination';
 import { LocalBackupSink, type BackupSink } from './backup-sink';
-import { parseDatabaseUrl, pgTool, runPg } from './pg';
+import { parseDatabaseUrl, pgTool, runMigrateDeploy, runPg } from './pg';
 import { ensureBackupDirs, MAX_BACKUP_BYTES } from './paths';
 
 const SETTINGS_ID = 'default';
@@ -202,6 +202,14 @@ export class BackupsService implements OnModuleInit {
         }
       } finally {
         await this.prisma.$connect();
+      }
+
+      // Older dumps may lack newer columns (e.g. BuildingAccess.roles)
+      const migrate = await runMigrateDeploy();
+      if (migrate.code !== 0) {
+        throw new BadRequestException(
+          (migrate.stderr || migrate.stdout).trim().slice(-2000) || 'اعمال مایگریشن بعد از بازیابی ناموفق بود',
+        );
       }
 
       const users = await this.prisma.user.count();

@@ -48,16 +48,24 @@ export function parseDatabaseUrl(raw = process.env.DIRECT_URL || process.env.DAT
 }
 
 export function runPg(bin: string, args: string[], password: string) {
-  return new Promise<{ code: number; stderr: string }>((resolve, reject) => {
+  return new Promise<{ code: number; stderr: string; stdout: string }>((resolve, reject) => {
     const child = spawn(bin, args, {
       env: { ...process.env, PGPASSWORD: password },
       windowsHide: true,
     });
     let stderr = '';
+    let stdout = '';
     child.stderr.on('data', (chunk) => {
       stderr += chunk.toString();
     });
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk.toString();
+    });
     child.on('error', reject);
-    child.on('close', (code) => resolve({ code: code ?? 1, stderr }));
+    child.on('close', (code) => resolve({ code: code ?? 1, stderr, stdout }));
   });
+}
+
+export function runMigrateDeploy() {
+  return runPg('npx', ['prisma', 'migrate', 'deploy', '--schema', './prisma/schema.prisma'], process.env.PGPASSWORD || '');
 }
