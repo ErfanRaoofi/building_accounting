@@ -9,6 +9,8 @@ export class FormRail {
   title = input('');
   subtitle = input('');
   wide = input(false);
+  wider = input(false);
+  closeOnEscape = input(true);
 
   close() {
     this.open.set(false);
@@ -16,7 +18,8 @@ export class FormRail {
 
   @HostListener('document:keydown.escape', ['$event'])
   onEscape(event: Event) {
-    if (this.open() && !event.defaultPrevented) {
+    if (this.open() && this.closeOnEscape() && !event.defaultPrevented) {
+      event.preventDefault();
       this.close();
     }
   }

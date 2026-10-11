@@ -1,48 +1,68 @@
-<div class="h-full overflow-y-auto mx-auto max-w-5xl p-6 text-slate-800">
-  <button class="ui-btn-primary no-print mb-6" type="button" (click)="printPage()" [disabled]="loading()">چاپ</button>
+<div class="print-sheet mx-auto max-w-5xl bg-white p-6 text-slate-900">
+  <div class="no-print mb-6 flex justify-end">
+    <button class="ui-btn-primary" type="button" (click)="printPage()" [disabled]="loading()">چاپ</button>
+  </div>
   @if (loading()) {
     <app-skeleton kind="print" [rows]="10" />
   } @else if (data(); as d) {
-    <header class="mb-6 flex items-center gap-4 border-b border-slate-200 pb-4">
-      @if (d.building?.logoUrl) {
-        <img class="h-14 w-14 rounded-xl object-cover" [src]="d.building.logoUrl + '?v=' + (d.building.updatedAt || '')" alt="" />
-      }
-      <div>
-        <h1 class="text-2xl font-bold">گزارش واحدهای بدهکار</h1>
-        <p class="mt-2 text-sm text-slate-500">
-          {{ d.building?.name }} — سال مالی {{ d.fiscalYear?.title }} — {{ rangeLabel(d) }} — تاریخ چاپ {{ today }}
-        </p>
+    <header class="flex items-center justify-between gap-4 border-b border-slate-300 pb-4">
+      <div class="min-w-0">
+        <p class="text-sm text-slate-500">{{ d.building?.name }}</p>
+        <h1 class="mt-1 text-2xl font-bold">گزارش بدهکاران</h1>
+        <p class="mt-2 text-sm text-slate-600">سال مالی {{ d.fiscalYear?.title }} · {{ rangeLabel(d) }} · تاریخ چاپ {{ today }}</p>
       </div>
+      @if (d.building?.logoUrl) {
+        <img class="h-16 w-16 shrink-0 rounded-xl object-cover" [src]="d.building.logoUrl + '?v=' + (d.building.updatedAt || '')" alt="" />
+      }
     </header>
-    <table class="w-full border-collapse text-right text-sm">
+
+    <table class="mt-4 w-full border-collapse text-right text-sm">
       <thead>
         <tr>
-          <th class="border border-slate-200 bg-slate-50 px-2 py-2">واحد</th>
-          <th class="border border-slate-200 bg-slate-50 px-2 py-2">مالک / ساکن</th>
-          <th class="border border-slate-200 bg-slate-50 px-2 py-2">تلفن</th>
-          <th class="border border-slate-200 bg-slate-50 px-2 py-2">ماه‌های بدهکار</th>
-          <th class="border border-slate-200 bg-slate-50 px-2 py-2">تعداد ماه</th>
-          <th class="border border-slate-200 bg-slate-50 px-2 py-2">مانده</th>
+          <th>واحد</th>
+          <th>مالک / ساکن</th>
+          <th>تلفن</th>
+          <th>ماه‌های بدهکار</th>
+          <th>تعداد</th>
+          <th>مانده</th>
         </tr>
       </thead>
       <tbody>
         @for (row of d.items; track row.unitId) {
           <tr>
-            <td class="border border-slate-200 px-2 py-2">{{ row.number }}</td>
-            <td class="border border-slate-200 px-2 py-2">
-              {{ row.ownerName || '-' }}
+            <td class="font-semibold">{{ row.number }}</td>
+            <td>
+              {{ row.ownerName || '—' }}
               @if (row.residentName && row.residentName !== row.ownerName) {
-                <span class="block text-xs text-slate-500">ساکن {{ row.residentName }}</span>
+                <span class="mt-0.5 block text-xs text-slate-500">ساکن {{ row.residentName }}</span>
               }
             </td>
-            <td class="border border-slate-200 px-2 py-2" dir="ltr">{{ row.phone || '-' }}</td>
-            <td class="border border-slate-200 px-2 py-2">{{ monthsLabel(row) }}</td>
-            <td class="border border-slate-200 px-2 py-2">{{ row.unpaidCount }}</td>
-            <td class="border border-slate-200 px-2 py-2">{{ formatMoney(row.remaining) }}</td>
+            <td dir="ltr">{{ row.phone || '—' }}</td>
+            <td>
+              <div class="flex max-w-64 flex-wrap gap-1">
+                @for (month of row.unpaidMonths; track month.year + '-' + month.month) {
+                  <span
+                    class="month-chip inline-flex items-center gap-1 rounded px-1 py-0.5 text-[11px]"
+                    [class.bg-amber-100]="month.status === 'PARTIAL'"
+                    [class.bg-rose-50]="month.status !== 'PARTIAL'"
+                  >
+                    {{ monthChipLabel(month) }} {{ compactMoney(month.remaining) }}
+                  </span>
+                }
+              </div>
+            </td>
+            <td>{{ row.unpaidCount }}</td>
+            <td class="font-semibold">{{ formatMoney(row.remaining) }}</td>
           </tr>
         }
       </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="4">جمع</td>
+          <td>{{ d.summary.unpaidMonths }}</td>
+          <td>{{ formatMoney(d.summary.remaining) }}</td>
+        </tr>
+      </tfoot>
     </table>
-    <p class="mt-4 font-semibold">تعداد واحد بدهکار تا {{ d.range?.to?.title }}: {{ d.summary.units }} — مانده کل: {{ formatMoney(d.summary.remaining) }}</p>
   }
 </div>

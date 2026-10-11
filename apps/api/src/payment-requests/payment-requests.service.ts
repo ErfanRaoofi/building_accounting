@@ -155,6 +155,9 @@ export class PaymentRequestsService {
       description,
       lines,
     });
+    if (!receipt.paymentId) {
+      throw new BadRequestException('واریزی درخواست ساخته نشد');
+    }
 
     const updated = await this.prisma.paymentRequest.update({
       where: { id },
@@ -163,7 +166,9 @@ export class PaymentRequestsService {
         reviewedById: user.id,
         reviewedAt: new Date(),
         receiptId: receipt.id,
+        receiptPaymentId: receipt.paymentId,
         rejectReason: null,
+        voidReason: null,
       },
       include: INCLUDE,
     });

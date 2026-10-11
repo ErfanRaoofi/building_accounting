@@ -9,7 +9,8 @@
   ></button>
   <aside
     class="ui-rail"
-    [class.ui-rail-wide]="wide()"
+    [class.ui-rail-wide]="wide() && !wider()"
+    [class.ui-rail-wider]="wider()"
     role="dialog"
     aria-modal="true"
     [attr.aria-label]="title()"

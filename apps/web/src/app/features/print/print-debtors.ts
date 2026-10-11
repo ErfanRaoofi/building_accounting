@@ -2,7 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute } from '@angular/router';
 import { ContextService } from '../../core/context.service';
-import { formatJalali, formatMoney } from '../../core/jalali';
+import { compactMoney, formatJalali, formatMoney, monthChipLabel } from '../../core/jalali';
 import { ALL_QUERY } from '../../core/pagination';
 import { withBusy } from '../../core/with-busy';
 import { Skeleton } from '../../shared/skeleton';
@@ -21,6 +21,8 @@ export class PrintDebtors {
   data = signal<any>(null);
   loading = signal(true);
   formatMoney = formatMoney;
+  compactMoney = compactMoney;
+  monthChipLabel = monthChipLabel;
   formatJalali = formatJalali;
   today = formatJalali(new Date());
 
@@ -61,15 +63,5 @@ export class PrintDebtors {
       return to.title;
     }
     return `از ${from.title} تا ${to.title}`;
-  }
-
-  monthsLabel(row: { unpaidMonths?: { title: string; remaining?: number; status?: string }[] }) {
-    return (row.unpaidMonths || [])
-      .map((month) => {
-        const amount = month.remaining == null ? '' : ` ${formatMoney(month.remaining)}`;
-        const partial = month.status === 'PARTIAL' ? ' ناقص' : '';
-        return `${month.title}${partial}${amount}`;
-      })
-      .join('، ');
   }
 }

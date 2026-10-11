@@ -2,7 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { ContextService } from '../../core/context.service';
-import { formatMoney, toJalali } from '../../core/jalali';
+import { compactMoney, formatMoney, monthChipLabel } from '../../core/jalali';
 import { watchBuildingYear } from '../../core/watch-context';
 import { ALL_QUERY } from '../../core/pagination';
 import { withBusy } from '../../core/with-busy';
@@ -25,6 +25,8 @@ export class ReportsDebtors {
   loading = signal(true);
   private loadSeq = 0;
   formatMoney = formatMoney;
+  compactMoney = compactMoney;
+  monthChipLabel = monthChipLabel;
 
   constructor() {
     watchBuildingYear(this.ctx, () => this.resetAndLoad());
@@ -53,12 +55,10 @@ export class ReportsDebtors {
 
   printQuery(): Record<string, string> {
     const from = this.parseKey(this.fromKey());
-    const today = toJalali(new Date());
-    const to = this.parseKey(this.toKey()) ?? { year: today.jy, month: today.jm };
+    const to = this.parseKey(this.toKey());
     return {
-      toYear: String(to.year),
-      toMonth: String(to.month),
       ...(from ? { fromYear: String(from.year), fromMonth: String(from.month) } : {}),
+      ...(to ? { toYear: String(to.year), toMonth: String(to.month) } : {}),
     };
   }
 
@@ -72,16 +72,6 @@ export class ReportsDebtors {
       return to.title;
     }
     return `از ${from.title} تا ${to.title}`;
-  }
-
-  monthsLabel(row: { unpaidMonths?: Array<MonthOption & { remaining?: number; status?: string }> }) {
-    return (row.unpaidMonths || [])
-      .map((month) => {
-        const amount = month.remaining == null ? '' : ` ${formatMoney(month.remaining)}`;
-        const partial = month.status === 'PARTIAL' ? ' ناقص' : '';
-        return `${month.title}${partial}${amount}`;
-      })
-      .join('، ');
   }
 
   load() {

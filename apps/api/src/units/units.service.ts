@@ -142,7 +142,11 @@ export class UnitsService {
         (skip, take) =>
           this.prisma.receipt.findMany({
             where: receiptWhere,
-            include: { receiptType: true, lines: true, payments: { orderBy: { date: 'asc' } } },
+            include: {
+              receiptType: true,
+              lines: true,
+              payments: { orderBy: { date: 'asc' }, include: { receiptType: true } },
+            },
             orderBy: { date: 'asc' },
             skip,
             take,
@@ -150,7 +154,11 @@ export class UnitsService {
         () =>
           this.prisma.receipt.findMany({
             where: receiptWhere,
-            include: { receiptType: true, lines: true, payments: { orderBy: { date: 'asc' } } },
+            include: {
+              receiptType: true,
+              lines: true,
+              payments: { orderBy: { date: 'asc' }, include: { receiptType: true } },
+            },
             orderBy: { date: 'asc' },
           }),
       ),

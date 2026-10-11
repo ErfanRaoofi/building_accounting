@@ -4,6 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { ContextService } from '../../core/context.service';
 import { ToastService } from '../../core/toast.service';
 import { formatJalali, formatMoney, isoDate } from '../../core/jalali';
+import { PAYMENT_METHOD_OPTIONS } from '../../core/payment-method';
 import { watchBuildingYear } from '../../core/watch-context';
 import { ALL_QUERY, DEFAULT_PAGE_SIZE, Paged, pageQuery } from '../../core/pagination';
 import { withBusy } from '../../core/with-busy';
@@ -39,6 +40,7 @@ export class Payments {
   categoryOpen = signal(false);
   editingId = signal<string | null>(null);
   formatMoney = formatMoney;
+  paymentMethods = PAYMENT_METHOD_OPTIONS;
   formatJalali = formatJalali;
   form = this.fb.nonNullable.group({
     categoryId: ['', Validators.required],

@@ -238,6 +238,10 @@
     @apply lg:w-[min(36rem,92vw)];
   }
 
+  .ui-rail-wider {
+    @apply lg:w-[min(48rem,94vw)];
+  }
+
   .ui-form-scroll {
     @apply min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4;
   }
@@ -324,6 +328,10 @@
 
   .ui-btn-danger {
     @apply inline-flex h-11 cursor-pointer items-center justify-center rounded-xl px-4 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .ui-btn-danger-solid {
+    @apply inline-flex h-11 cursor-pointer items-center justify-center rounded-xl bg-rose-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .ui-icon-btn {
@@ -631,6 +639,11 @@
 }
 
 @media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
   html,
   body,
   app-root {
@@ -644,6 +657,46 @@
 
   body {
     background: white !important;
+  }
+
+  .print-sheet {
+    max-width: none;
+    padding: 0;
+  }
+
+  .print-sheet table {
+    border-collapse: collapse;
+  }
+
+  .print-sheet th,
+  .print-sheet td {
+    border: 1px solid #cbd5e1;
+    padding: 6px 8px;
+    vertical-align: top;
+  }
+
+  .print-sheet th {
+    background: #f8fafc;
+    font-weight: 700;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .month-chip {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .print-sheet thead {
+    display: table-header-group;
+  }
+
+  .print-sheet tfoot {
+    display: table-footer-group;
+  }
+
+  .print-sheet tr {
+    break-inside: avoid;
   }
 }
 

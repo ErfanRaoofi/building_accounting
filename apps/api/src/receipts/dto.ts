@@ -137,3 +137,10 @@ export class UpdateReceiptPaymentDto {
   @Type(() => ReceiptLineDto)
   lines?: ReceiptLineDto[];
 }
+
+export class RemoveReceiptPaymentDto {
+  @IsOptional()
+  @IsString()
+  @MinLength(3)
+  reason?: string;
+}

@@ -2,7 +2,7 @@
   <div class="ui-page-head">
     <div>
       <h1 class="ui-title">گزارش بدهکاران</h1>
-      <p class="ui-muted">تعداد بدهکار، واحدهایی است که از ماه شروع تا ماه انتخاب‌شده مانده دارند.</p>
+      <p class="ui-muted">بازهٔ اولیه از ابتدای سال مالی تا ماه جاری است. فقط واحدهایی که در این بازه مانده دارند می‌آیند.</p>
     </div>
     <a class="ui-btn-primary w-full sm:w-auto" routerLink="/print/debtors" [queryParams]="printQuery()" target="_blank">چاپ</a>
   </div>
@@ -12,7 +12,7 @@
   } @else {
     @if (months().length) {
       <div class="ui-card">
-        <div class="grid gap-3 sm:grid-cols-2">
+        <div class="grid gap-3 sm:grid-cols-2 sm:max-w-xl">
           <label class="ui-field">
             <span class="ui-label">از ماه</span>
             <select class="ui-input" [value]="fromKey()" (change)="setFrom($any($event.target).value)">
@@ -42,7 +42,7 @@
           <p class="mt-1 text-lg font-bold">{{ rangeLabel(d) }}</p>
         </div>
         <div class="ui-card">
-          <p class="ui-muted">بدهکار تا {{ d.range?.to?.title }}</p>
+          <p class="ui-muted">واحد بدهکار</p>
           <p class="mt-1 text-2xl font-bold text-rose-700">{{ d.summary.units }}</p>
         </div>
         <div class="ui-card">
@@ -65,12 +65,30 @@
                       <span> · ساکن {{ row.residentName }}</span>
                     }
                   </p>
-                  <p class="ui-muted" dir="ltr">{{ row.phone || 'بدون تلفن' }}</p>
+                  @if (row.phone) {
+                    <p class="ui-muted" dir="ltr">{{ row.phone }}</p>
+                  }
                 </div>
-                <p class="ui-money font-semibold text-rose-700">{{ formatMoney(row.remaining) }}</p>
+                <div class="text-end">
+                  <p class="ui-money font-semibold text-rose-700">{{ formatMoney(row.remaining) }}</p>
+                  <p class="ui-muted">{{ row.unpaidCount }} ماه</p>
+                </div>
               </div>
-              <p class="text-sm text-slate-600">{{ monthsLabel(row) }}</p>
-              <p class="ui-muted">{{ row.unpaidCount }} ماه بدهکار</p>
+              <div class="flex flex-wrap gap-1">
+                @for (month of row.unpaidMonths; track month.year + '-' + month.month) {
+                  <span
+                    class="month-chip inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium"
+                    [class.bg-amber-100]="month.status === 'PARTIAL'"
+                    [class.text-amber-900]="month.status === 'PARTIAL'"
+                    [class.bg-rose-50]="month.status !== 'PARTIAL'"
+                    [class.text-rose-800]="month.status !== 'PARTIAL'"
+                    [title]="month.title + ' · ' + formatMoney(month.remaining) + ' تومان'"
+                  >
+                    {{ monthChipLabel(month) }}
+                    <span class="ui-money font-normal opacity-80">{{ compactMoney(month.remaining) }}</span>
+                  </span>
+                }
+              </div>
             </article>
           }
         </div>
@@ -82,7 +100,7 @@
                 <th>مالک / ساکن</th>
                 <th>تلفن</th>
                 <th>ماه‌های بدهکار</th>
-                <th>تعداد ماه</th>
+                <th>تعداد</th>
                 <th>مانده</th>
               </tr>
             </thead>
@@ -93,20 +111,37 @@
                     <a class="text-brand-700 hover:text-brand-800" [routerLink]="['/units', row.unitId, 'ledger']">{{ row.number }}</a>
                   </td>
                   <td>
-                    {{ row.ownerName || '-' }}
+                    <p>{{ row.ownerName || '—' }}</p>
                     @if (row.residentName && row.residentName !== row.ownerName) {
-                      <span class="block text-xs text-slate-500">ساکن {{ row.residentName }}</span>
+                      <p class="text-xs text-slate-500">ساکن {{ row.residentName }}</p>
                     }
                   </td>
-                  <td dir="ltr">{{ row.phone || '-' }}</td>
-                  <td>{{ monthsLabel(row) }}</td>
+                  <td dir="ltr" class="text-left">{{ row.phone || '—' }}</td>
+                  <td>
+                    <div class="flex max-w-72 flex-wrap gap-1">
+                      @for (month of row.unpaidMonths; track month.year + '-' + month.month) {
+                        <span
+                          class="month-chip inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium"
+                          [class.bg-amber-100]="month.status === 'PARTIAL'"
+                          [class.text-amber-900]="month.status === 'PARTIAL'"
+                          [class.bg-rose-50]="month.status !== 'PARTIAL'"
+                          [class.text-rose-800]="month.status !== 'PARTIAL'"
+                          [title]="month.title + ' · ' + formatMoney(month.remaining) + ' تومان'"
+                        >
+                          {{ monthChipLabel(month) }}
+                          <span class="ui-money font-normal opacity-80">{{ compactMoney(month.remaining) }}</span>
+                        </span>
+                      }
+                    </div>
+                  </td>
                   <td>{{ row.unpaidCount }}</td>
-                  <td class="ui-money">{{ formatMoney(row.remaining) }}</td>
+                  <td class="ui-money font-semibold">{{ formatMoney(row.remaining) }}</td>
                 </tr>
               }
             </tbody>
           </table>
         </div>
+        <p class="mt-2 text-xs text-slate-500">عدد کنار نام ماه، مبلغ کوتاه‌شده به تومان است. «م» میلیون و «هزار» هزار تومان. زرد یعنی پرداخت ناقص. با نگه داشتن نشانگر، مبلغ دقیق دیده می‌شود.</p>
       }
     }
   }

@@ -117,10 +117,9 @@
         <label class="ui-field">
           <span class="ui-label">روش پرداخت</span>
           <select class="ui-input" formControlName="paymentMethod">
-            <option value="CASH">نقد</option>
-            <option value="TRANSFER">واریز</option>
-            <option value="CARD">کارتخوان</option>
-            <option value="OTHER">سایر</option>
+            @for (item of paymentMethods; track item.value) {
+              <option [value]="item.value">{{ item.label }}</option>
+            }
           </select>
         </label>
         <label class="ui-field">

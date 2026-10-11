@@ -3,6 +3,7 @@ import { ReceiptsService } from './receipts.service';
 import {
   CreateReceiptDto,
   CreateReceiptTypeDto,
+  RemoveReceiptPaymentDto,
   UpdateReceiptDto,
   UpdateReceiptPaymentDto,
   UpdateReceiptTypeDto,
@@ -69,8 +70,13 @@ export class ReceiptsController {
   }
 
   @Delete('receipts/:id/payments/:paymentId')
-  removePayment(@CurrentUser() user: AuthUser, @Param('id') id: string, @Param('paymentId') paymentId: string) {
-    return this.receipts.removePayment(user, id, paymentId);
+  removePayment(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Param('paymentId') paymentId: string,
+    @Body() dto: RemoveReceiptPaymentDto,
+  ) {
+    return this.receipts.removePayment(user, id, paymentId, dto);
   }
 
   @Delete('receipts/:id')

@@ -1,11 +1,12 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { PaymentMethod, Prisma, ReceiptKind } from '@prisma/client';
+import { PaymentMethod, PaymentRequestStatus, Prisma, ReceiptKind } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AccessService } from '../common/access.service';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 import {
   CreateReceiptDto,
   CreateReceiptTypeDto,
+  RemoveReceiptPaymentDto,
   UpdateReceiptDto,
   UpdateReceiptPaymentDto,
   UpdateReceiptTypeDto,
@@ -34,6 +35,7 @@ const RECEIPT_INCLUDE = {
     include: {
       receiptType: true,
       lines: { include: { chargeInvoice: true } },
+      paymentRequest: { select: { id: true } },
     },
   },
 } as const;
@@ -259,7 +261,7 @@ export class ReceiptsService {
 
     // Unit document: always append into the single per-unit FY receipt
     if (dto.unitId) {
-      const receipt = await this.prisma.$transaction(async (tx) => {
+      const result = await this.prisma.$transaction(async (tx) => {
         const shell = await ensureUnitReceipt(tx, {
           buildingId: dto.buildingId,
           fiscalYearId: dto.fiscalYearId,
@@ -269,7 +271,7 @@ export class ReceiptsService {
         });
         return this.appendUnitPayment(tx, shell.id, dto, type, totalAmount);
       });
-      return { ...this.map(receipt), appended: true };
+      return { ...this.map(result.receipt), appended: true, paymentId: result.paymentId };
     }
 
     // Building-level receipt (no unit) — rare path for non-unit deposits
@@ -529,7 +531,7 @@ export class ReceiptsService {
     return this.map(receipt);
   }
 
-  async removePayment(user: AuthUser, receiptId: string, paymentId: string) {
+  async removePayment(user: AuthUser, receiptId: string, paymentId: string, dto?: RemoveReceiptPaymentDto) {
     const existing = await this.prisma.receipt.findUnique({
       where: { id: receiptId },
       include: {
@@ -546,8 +548,25 @@ export class ReceiptsService {
     if (!payment) {
       throw new NotFoundException('واریزی یافت نشد');
     }
+    const linked = await this.prisma.paymentRequest.findUnique({ where: { receiptPaymentId: paymentId } });
+    const reason = dto?.reason?.trim() || '';
+    if (linked && reason.length < 3) {
+      throw new BadRequestException('برای حذف واریزیِ درخواست ساکن، دلیل حذف را بنویسید');
+    }
 
     const receipt = await this.prisma.$transaction(async (tx) => {
+      if (linked) {
+        await tx.paymentRequest.update({
+          where: { id: linked.id },
+          data: {
+            status: PaymentRequestStatus.VOIDED,
+            voidReason: reason,
+            receiptPaymentId: null,
+            reviewedById: user.id,
+            reviewedAt: new Date(),
+          },
+        });
+      }
       await tx.receiptPayment.delete({ where: { id: paymentId } });
       if (existing.unitId) {
         await this.recomputeUnitInvoices(tx, existing.unitId, existing.fiscalYearId);
@@ -666,7 +685,8 @@ export class ReceiptsService {
         paymentMethod: dto.paymentMethod,
       },
     });
-    return tx.receipt.findUniqueOrThrow({ where: { id: receiptId }, include: RECEIPT_INCLUDE });
+    const receipt = await tx.receipt.findUniqueOrThrow({ where: { id: receiptId }, include: RECEIPT_INCLUDE });
+    return { receipt, paymentId: payment.id };
   }
 
   private async refreshReceiptTotal(tx: Prisma.TransactionClient, receiptId: string) {
@@ -928,6 +948,7 @@ export class ReceiptsService {
           })),
           months,
           monthsLabel: charge ? (months.length || prepaid ? this.monthsLabel(months, prepaid) : 'بدون ماه') : null,
+          fromRequest: Boolean(payment.paymentRequest),
         };
       }),
       lines: row.lines?.map((l: any) => ({

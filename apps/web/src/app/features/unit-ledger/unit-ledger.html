@@ -61,32 +61,42 @@
       } @else if (!requests().length) {
         <p class="ui-empty">هنوز درخواستی ثبت نکرده‌اید.</p>
       } @else {
-        <div class="ui-cards">
+        <div class="grid gap-2">
           @for (row of requests(); track row.id) {
-            <article class="ui-card space-y-2">
-              <div class="flex items-start justify-between gap-3">
-                <div>
-                  <p class="font-bold">{{ formatJalali(row.date) }} · {{ methodLabel(row.paymentMethod) }}</p>
-                  @if (row.description) {
-                    <p class="ui-muted">{{ row.description }}</p>
-                  }
-                  @if (row.status === 'REJECTED' && row.rejectReason) {
-                    <p class="text-sm text-rose-700">دلیل رد: {{ row.rejectReason }}</p>
-                  }
-                  @if (row.status === 'APPROVED' && row.receipt?.number) {
-                    <p class="ui-muted">سند {{ row.receipt.number }}</p>
-                  }
-                </div>
-                <div class="flex flex-col items-end gap-2">
-                  <p class="ui-money font-semibold">{{ formatMoney(row.amount) }}</p>
-                  <span [class]="requestStatusClass(row.status)">{{ requestStatusLabel(row.status) }}</span>
-                </div>
-              </div>
+            <article class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3">
               @if (row.imagePath) {
-                <a class="block overflow-hidden rounded-lg border border-slate-200" [href]="row.imagePath" target="_blank" rel="noopener">
-                  <img class="max-h-40 w-full object-contain bg-slate-50" [src]="row.imagePath" alt="فیش پرداخت" />
+                <a
+                  class="flex h-16 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-50 ring-1 ring-slate-200"
+                  [href]="row.imagePath"
+                  target="_blank"
+                  rel="noopener"
+                >
+                  <img class="max-h-full max-w-full object-contain" [src]="row.imagePath" alt="فیش پرداخت" />
                 </a>
               }
+              <div class="min-w-0 flex-1">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="min-w-0">
+                    <p class="font-semibold text-slate-900">{{ formatJalali(row.date) }} · {{ methodLabel(row.paymentMethod) }}</p>
+                    @if (row.description) {
+                      <p class="truncate text-sm text-slate-500">{{ row.description }}</p>
+                    }
+                    @if (row.status === 'APPROVED' && row.receipt?.number) {
+                      <p class="mt-1 text-sm text-emerald-700">روی سند {{ row.receipt.number }} ثبت شد.</p>
+                    }
+                    @if (row.status === 'REJECTED') {
+                      <p class="mt-1 text-sm text-rose-700">دلیل رد: {{ row.rejectReason || 'بدون توضیح' }}</p>
+                    }
+                    @if (row.status === 'VOIDED') {
+                      <p class="mt-1 text-sm text-rose-700">دلیل حذف: {{ row.voidReason || 'بدون توضیح' }}</p>
+                    }
+                  </div>
+                  <div class="flex shrink-0 flex-col items-end gap-1">
+                    <p class="ui-money font-semibold">{{ formatMoney(row.amount) }}</p>
+                    <span [class]="requestStatusClass(row.status)">{{ requestStatusLabel(row.status) }}</span>
+                  </div>
+                </div>
+              </div>
             </article>
           }
         </div>
@@ -201,6 +211,40 @@
             </tbody>
           </table>
         </div>
+      } @else {
+        <div class="ui-table-wrap ui-table-desktop">
+          <table class="ui-table">
+            <thead>
+              <tr>
+                <th>ماه</th>
+                <th>شارژ</th>
+                <th>پرداخت‌شده</th>
+                <th>مانده</th>
+                <th>وضعیت</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of d.invoices.items; track row.id) {
+                <tr>
+                  <td class="font-medium text-slate-900">
+                    {{ row.monthTitle }}
+                    @if (row.occupancy === 'VACANT') {
+                      <span class="ui-chip-muted mr-2">خالی</span>
+                    }
+                  </td>
+                  <td class="ui-money">{{ formatMoney(row.amount) }}</td>
+                  <td class="ui-money text-emerald-700">{{ formatMoney(row.paidAmount) }}</td>
+                  <td class="ui-money">{{ formatMoney(row.remaining) }}</td>
+                  <td>
+                    <span [class]="row.status === 'PAID' ? 'ui-chip-paid' : row.status === 'PARTIAL' ? 'ui-chip-partial' : 'ui-chip-unpaid'">
+                      {{ statusLabel(row.status) }}
+                    </span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
       }
       <app-pager class="mt-3 block" [(page)]="invoicePage" [(size)]="invoiceSize" [total]="d.invoices.total" (changed)="load()" />
     }
@@ -211,16 +255,28 @@
     } @else {
       <div class="ui-cards">
         @for (row of d.receipts.items; track row.id) {
-          <article class="ui-card flex items-start justify-between gap-3">
-            <div>
-              <p class="font-bold">{{ row.number }}</p>
-              <p class="ui-muted">{{ formatJalali(row.date) }} · {{ row.receiptType?.name }}</p>
-              @if (row.payments?.length > 1) {
-                <p class="ui-muted">{{ row.payments.length }} پرداخت روی همین سند</p>
-              }
-            </div>
-            <p class="ui-money font-semibold">{{ formatMoney(row.totalAmount) }}</p>
-          </article>
+          @if (isResidentPortal() && row.payments?.length) {
+            @for (pay of row.payments; track pay.id) {
+              <article class="ui-card flex items-start justify-between gap-3">
+                <div>
+                  <p class="font-bold">{{ formatJalali(pay.date) }}</p>
+                  <p class="ui-muted">{{ pay.receiptType?.name || row.receiptType?.name || '—' }} · {{ methodLabel(pay.paymentMethod) }}</p>
+                </div>
+                <p class="ui-money font-semibold">{{ formatMoney(pay.amount) }}</p>
+              </article>
+            }
+          } @else {
+            <article class="ui-card flex items-start justify-between gap-3">
+              <div>
+                <p class="font-bold">{{ row.number }}</p>
+                <p class="ui-muted">{{ formatJalali(row.date) }} · {{ row.receiptType?.name }}</p>
+                @if (row.payments?.length > 1) {
+                  <p class="ui-muted">{{ row.payments.length }} پرداخت روی همین سند</p>
+                }
+              </div>
+              <p class="ui-money font-semibold">{{ formatMoney(row.totalAmount) }}</p>
+            </article>
+          }
         }
       </div>
       @if (!isResidentPortal()) {
@@ -247,6 +303,40 @@
                   </td>
                   <td class="ui-money">{{ formatMoney(row.totalAmount) }}</td>
                 </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <div class="ui-table-wrap ui-table-desktop">
+          <table class="ui-table ui-table-fit">
+            <thead>
+              <tr>
+                <th>تاریخ</th>
+                <th>نوع</th>
+                <th>روش</th>
+                <th>مبلغ</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of d.receipts.items; track row.id) {
+                @if (row.payments?.length) {
+                  @for (pay of row.payments; track pay.id) {
+                    <tr>
+                      <td>{{ formatJalali(pay.date) }}</td>
+                      <td>{{ pay.receiptType?.name || row.receiptType?.name || '—' }}</td>
+                      <td>{{ methodLabel(pay.paymentMethod) }}</td>
+                      <td class="ui-money font-semibold">{{ formatMoney(pay.amount) }}</td>
+                    </tr>
+                  }
+                } @else {
+                  <tr>
+                    <td>{{ formatJalali(row.date) }}</td>
+                    <td>{{ row.receiptType?.name || '—' }}</td>
+                    <td>{{ methodLabel(row.paymentMethod) }}</td>
+                    <td class="ui-money font-semibold">{{ formatMoney(row.totalAmount) }}</td>
+                  </tr>
+                }
               }
             </tbody>
           </table>
@@ -278,26 +368,25 @@
           <label class="ui-field">
             <span class="ui-label">روش پرداخت</span>
             <select class="ui-input" formControlName="paymentMethod">
-              <option value="TRANSFER">حواله بانکی</option>
-              <option value="CARD">کارت به کارت</option>
-              <option value="CASH">نقد</option>
-              <option value="OTHER">سایر</option>
+              @for (item of paymentMethods; track item.value) {
+                <option [value]="item.value">{{ item.label }}</option>
+              }
             </select>
           </label>
           <label class="ui-field">
             <span class="ui-label">توضیح (اختیاری)</span>
             <input class="ui-input" formControlName="description" placeholder="شماره پیگیری و ..." />
           </label>
-          <label class="ui-field">
+          <div class="ui-field">
             <span class="ui-label">تصویر فیش</span>
-            <input
-              class="ui-input"
-              type="file"
-              accept="image/*"
-              capture="environment"
-              (change)="onImagePicked($event)"
-            />
-          </label>
+            <div class="flex gap-2">
+              <button class="ui-btn-ghost flex-1" type="button" (click)="galleryPicker.click()">انتخاب از گالری</button>
+              <button class="ui-btn-ghost flex-1" type="button" (click)="cameraPicker.click()">دوربین</button>
+            </div>
+            <input #galleryPicker class="sr-only" type="file" accept="image/*" (change)="onImagePicked($event)" />
+            <input #cameraPicker class="sr-only" type="file" accept="image/*" capture="environment" (change)="onImagePicked($event)" />
+            <p class="text-xs text-slate-500">بعد از انتخاب، تصویر را برش می‌دهید. اگر بزرگ باشد خودبه‌خود کوچک می‌شود.</p>
+          </div>
           @if (imagePreview(); as preview) {
             <img class="max-h-48 w-full rounded-lg border border-slate-200 object-contain bg-slate-50" [src]="preview" alt="پیش‌نمایش فیش" />
           }
@@ -308,4 +397,5 @@
       </div>
     </div>
   }
+  <app-image-cropper (cropped)="onCropped($event)" />
 </section>

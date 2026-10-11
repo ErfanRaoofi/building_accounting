@@ -71,6 +71,7 @@ enum PaymentRequestStatus {
   PENDING
   APPROVED
   REJECTED
+  VOIDED
 }
 
 model User {
@@ -297,7 +298,8 @@ model ReceiptPayment {
   createdAt     DateTime      @default(now())
   receipt       Receipt       @relation(fields: [receiptId], references: [id], onDelete: Cascade)
   receiptType   ReceiptType   @relation(fields: [receiptTypeId], references: [id], onDelete: Restrict)
-  lines         ReceiptLine[]
+  lines          ReceiptLine[]
+  paymentRequest PaymentRequest?
 
   @@index([receiptId, date])
 }
@@ -331,8 +333,10 @@ model PaymentRequest {
   submittedById String
   reviewedById  String?
   reviewedAt    DateTime?
-  rejectReason  String?
-  receiptId     String?
+  rejectReason     String?
+  voidReason       String?
+  receiptId        String?
+  receiptPaymentId String?              @unique
   createdAt     DateTime             @default(now())
   updatedAt     DateTime             @updatedAt
   building      Building             @relation(fields: [buildingId], references: [id], onDelete: Cascade)
@@ -340,7 +344,8 @@ model PaymentRequest {
   unit          Unit                 @relation(fields: [unitId], references: [id], onDelete: Cascade)
   submittedBy   User                 @relation("PaymentRequestSubmittedBy", fields: [submittedById], references: [id], onDelete: Restrict)
   reviewedBy    User?                @relation("PaymentRequestReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
-  receipt       Receipt?             @relation(fields: [receiptId], references: [id], onDelete: SetNull)
+  receipt          Receipt?             @relation(fields: [receiptId], references: [id], onDelete: SetNull)
+  receiptPayment   ReceiptPayment?      @relation(fields: [receiptPaymentId], references: [id], onDelete: SetNull)
 
   @@index([buildingId, status])
   @@index([unitId, createdAt])

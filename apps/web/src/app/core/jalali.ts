@@ -15,6 +15,13 @@ export const JALALI_MONTHS = [
   'اسفند',
 ];
 
+export function monthChipLabel(month: { month?: number; title?: string }) {
+  if (month.month && month.month >= 1 && month.month <= 12) {
+    return JALALI_MONTHS[month.month - 1];
+  }
+  return (month.title || '').split(/\s+/)[0];
+}
+
 export function toJalali(date: Date) {
   return toJalaali(date.getFullYear(), date.getMonth() + 1, date.getDate());
 }
@@ -88,6 +95,18 @@ export function isoDate(date: Date) {
 export function formatMoney(value: number | null | undefined) {
   const toman = Math.round(Number(value || 0) / 10);
   return new Intl.NumberFormat('fa-IR').format(toman);
+}
+
+export function compactMoney(value: number | null | undefined) {
+  const toman = Math.round(Number(value || 0) / 10);
+  const fa = new Intl.NumberFormat('fa-IR', { maximumFractionDigits: 1 });
+  if (toman >= 1_000_000) {
+    return `${fa.format(Math.round((toman / 1_000_000) * 10) / 10)}م`;
+  }
+  if (toman >= 10_000) {
+    return `${fa.format(Math.round(toman / 1000))}هزار`;
+  }
+  return fa.format(toman);
 }
 
 export function formatMoneyRial(value: number | null | undefined) {

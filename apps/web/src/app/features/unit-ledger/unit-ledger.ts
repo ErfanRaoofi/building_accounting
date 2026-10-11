@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, viewChild } from '@angular/core';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
@@ -6,6 +6,7 @@ import { AuthService } from '../../core/auth.service';
 import { ContextService } from '../../core/context.service';
 import { ToastService } from '../../core/toast.service';
 import { formatJalali, formatMoney, isoDate } from '../../core/jalali';
+import { PAYMENT_METHOD_OPTIONS, paymentMethodLabel } from '../../core/payment-method';
 import { watchBuildingYear } from '../../core/watch-context';
 import { ALL_QUERY, DEFAULT_PAGE_SIZE, Paged } from '../../core/pagination';
 import { withBusy } from '../../core/with-busy';
@@ -14,10 +15,11 @@ import { Skeleton } from '../../shared/skeleton';
 import { MoneyInput } from '../../shared/money-input';
 import { JalaliDatepicker } from '../../shared/jalali-datepicker';
 import { Busy } from '../../shared/busy';
+import { ImageCropper } from '../../shared/image-cropper';
 
 @Component({
   selector: 'app-unit-ledger',
-  imports: [FormsModule, ReactiveFormsModule, RouterLink, Pager, Skeleton, MoneyInput, JalaliDatepicker, Busy],
+  imports: [FormsModule, ReactiveFormsModule, RouterLink, Pager, Skeleton, MoneyInput, JalaliDatepicker, Busy, ImageCropper],
   templateUrl: './unit-ledger.html',
 })
 export class UnitLedger {
@@ -40,8 +42,11 @@ export class UnitLedger {
   savingId = signal<string | null>(null);
   imagePreview = signal<string | null>(null);
   imageFile = signal<File | null>(null);
+  cropper = viewChild(ImageCropper);
   formatMoney = formatMoney;
   formatJalali = formatJalali;
+  paymentMethods = PAYMENT_METHOD_OPTIONS;
+  methodLabel = paymentMethodLabel;
   private paidDraft: Record<string, number> = {};
   isResidentPortal = computed(() => !this.auth.isStaff() && this.auth.hasRole('RESIDENT'));
   form = this.fb.nonNullable.group({
@@ -115,15 +120,16 @@ export class UnitLedger {
   }
 
   requestStatusLabel(status: string) {
-    return status === 'APPROVED' ? 'تأیید شده' : status === 'REJECTED' ? 'رد شده' : 'در انتظار تأیید';
+    if (status === 'APPROVED') return 'تأیید شده';
+    if (status === 'REJECTED') return 'رد شده';
+    if (status === 'VOIDED') return 'حذف شده';
+    return 'در انتظار تأیید';
   }
 
   requestStatusClass(status: string) {
-    return status === 'APPROVED' ? 'ui-chip-paid' : status === 'REJECTED' ? 'ui-chip-unpaid' : 'ui-chip-partial';
-  }
-
-  methodLabel(method: string) {
-    return method === 'CASH' ? 'نقد' : method === 'CARD' ? 'کارت' : method === 'TRANSFER' ? 'حواله' : 'سایر';
+    if (status === 'APPROVED') return 'ui-chip-paid';
+    if (status === 'REJECTED' || status === 'VOIDED') return 'ui-chip-unpaid';
+    return 'ui-chip-partial';
   }
 
   rememberPaid(id: string, value: number | null) {
@@ -179,6 +185,7 @@ export class UnitLedger {
   }
 
   closePaymentForm() {
+    this.cropper()?.close();
     this.formOpen.set(false);
     this.clearImage();
   }
@@ -186,23 +193,22 @@ export class UnitLedger {
   onImagePicked(event: Event) {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
-    if (!file) {
+    input.value = '';
+    this.cropper()?.pick(file);
+  }
+
+  onCropped(blob: Blob) {
+    if (blob.size > 2 * 1024 * 1024) {
+      this.toast.show('حجم تصویر بعد از کوچک‌سازی هنوز زیاد است');
       return;
     }
-    if (!file.type.startsWith('image/')) {
-      this.toast.show('فقط تصویر مجاز است');
-      input.value = '';
-      return;
-    }
-    if (file.size > 2 * 1024 * 1024) {
-      this.toast.show('حجم تصویر حداکثر ۲ مگابایت است');
-      input.value = '';
-      return;
-    }
+    const file = new File([blob], `receipt-${Date.now()}.jpg`, { type: 'image/jpeg' });
     this.imageFile.set(file);
-    const reader = new FileReader();
-    reader.onload = () => this.imagePreview.set(String(reader.result || ''));
-    reader.readAsDataURL(file);
+    const prev = this.imagePreview();
+    if (prev?.startsWith('blob:')) {
+      URL.revokeObjectURL(prev);
+    }
+    this.imagePreview.set(URL.createObjectURL(blob));
   }
 
   clearImage() {

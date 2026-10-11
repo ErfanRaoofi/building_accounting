@@ -1,9 +1,10 @@
-import { Component, ElementRef, HostListener, computed, inject, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, HostListener, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { ContextService } from '../../core/context.service';
 import { ToastService } from '../../core/toast.service';
 import { formatJalali, formatMoney, isoDate, JALALI_MONTHS, normalizeDigits } from '../../core/jalali';
+import { PAYMENT_METHOD_OPTIONS, paymentMethodLabel } from '../../core/payment-method';
 import { watchBuildingYear } from '../../core/watch-context';
 import { ALL_QUERY, DEFAULT_PAGE_SIZE, Paged, pageQuery } from '../../core/pagination';
 import { withBusy } from '../../core/with-busy';
@@ -76,6 +77,8 @@ export class Receipts {
   rejectOpen = signal(false);
   rejectId = signal<string | null>(null);
   rejectReason = signal('');
+  voidOpen = signal(false);
+  voidReason = signal('');
   paymentEditOpen = signal(false);
   paymentEditSaving = signal(false);
   paymentEditRemoving = signal(false);
@@ -88,6 +91,8 @@ export class Receipts {
   payMonthsLoading = signal(false);
   formatMoney = formatMoney;
   formatJalali = formatJalali;
+  paymentMethods = PAYMENT_METHOD_OPTIONS;
+  methodLabel = paymentMethodLabel;
   form = this.fb.nonNullable.group({
     receiptTypeId: ['', Validators.required],
     unitId: [''],
@@ -153,6 +158,11 @@ export class Receipts {
   payMonthSum = computed(() => Object.values(this.payMonthDraft()).reduce((sum, amount) => sum + (Number(amount) || 0), 0));
 
   constructor() {
+    effect(() => {
+      if (!this.detailOpen() && this.paymentEditOpen()) {
+        this.closePaymentEdit();
+      }
+    });
     watchBuildingYear(this.ctx, () => this.resetAndLoad());
     this.form.controls.unitId.valueChanges.subscribe((unitId) => this.loadInvoices(unitId));
     this.form.controls.receiptTypeId.valueChanges.subscribe(() => {
@@ -161,6 +171,14 @@ export class Receipts {
       }
     });
     this.form.controls.receivedAmount.valueChanges.subscribe((value) => this.received.set(Number(value) || 0));
+  }
+
+  @HostListener('document:keydown.escape', ['$event'])
+  onEscape(event: Event) {
+    if (this.paymentEditOpen()) {
+      event.preventDefault();
+      this.closePaymentEdit();
+    }
   }
 
   @HostListener('document:keydown', ['$event'])
@@ -236,7 +254,10 @@ export class Receipts {
       }),
     ).subscribe({
       next: (res) => this.pendingRequests.set(res.items),
-      error: () => this.pendingRequests.set([]),
+      error: (err) => {
+        this.pendingRequests.set([]);
+        this.toast.show(err.error?.message || 'بارگذاری درخواست‌های ساکنین ناموفق بود');
+      },
     });
   }
 
@@ -320,13 +341,6 @@ export class Receipts {
     return (this.page() - 1) * this.pageSize() + index + 1;
   }
 
-  methodLabel(method: string) {
-    if (method === 'TRANSFER') return 'واریز';
-    if (method === 'CARD') return 'کارتخوان';
-    if (method === 'OTHER') return 'سایر';
-    return 'نقد';
-  }
-
   typeAmounts(row: { payments?: { amount?: number; receiptType?: { id?: string; name?: string; kind?: string } }[] }) {
     const grouped = new Map<string, { id: string; name: string; kind: string; amount: number }>();
     for (const payment of row.payments || []) {
@@ -347,6 +361,8 @@ export class Receipts {
   }
 
   openDetail(row: any) {
+    this.formOpen.set(false);
+    this.closePaymentEdit();
     this.detail.set(row);
     this.detailOpen.set(true);
   }
@@ -556,21 +572,61 @@ export class Receipts {
     if (!receipt?.id || !paymentId || this.paymentEditRemoving()) {
       return;
     }
+    if (this.editingFromRequest()) {
+      this.voidReason.set('');
+      this.voidOpen.set(true);
+      return;
+    }
     if (!confirm('این واریزی از سند واحد حذف شود؟ خود سند باقی می‌ماند.')) {
+      return;
+    }
+    this.deletePayment();
+  }
+
+  confirmVoidPayment() {
+    const reason = this.voidReason().trim();
+    if (reason.length < 3) {
+      this.toast.show('دلیل حذف را بنویسید');
+      return;
+    }
+    this.deletePayment(reason);
+  }
+
+  editingFromRequest() {
+    const paymentId = this.editingPaymentId();
+    const payment = (this.detail()?.payments || []).find((row: { id: string }) => row.id === paymentId);
+    return Boolean(payment?.fromRequest);
+  }
+
+  private deletePayment(reason?: string) {
+    const receipt = this.detail();
+    const paymentId = this.editingPaymentId();
+    if (!receipt?.id || !paymentId || this.paymentEditRemoving()) {
       return;
     }
     withBusy(
       this.paymentEditRemoving,
-      this.http.delete<any>(`/api/receipts/${receipt.id}/payments/${paymentId}`),
+      this.http.delete<any>(`/api/receipts/${receipt.id}/payments/${paymentId}`, {
+        body: reason ? { reason } : {},
+      }),
     ).subscribe({
       next: (res) => {
+        this.voidOpen.set(false);
+        this.voidReason.set('');
         this.closePaymentEdit();
         this.detail.set(res);
         this.rows.update((items) => items.map((row) => (row.id === res.id ? res : row)));
-        this.toast.show('واریزی حذف شد');
+        this.toast.show(reason ? 'واریزی حذف شد و دلیل برای ساکن ثبت شد' : 'واریزی حذف شد');
         this.loadList();
       },
-      error: (err) => this.toast.show(err.error?.message || 'خطا در حذف واریزی'),
+      error: (err) => {
+        const message = err.error?.message || 'خطا در حذف واریزی';
+        if (!reason && String(message).includes('دلیل')) {
+          this.voidReason.set('');
+          this.voidOpen.set(true);
+        }
+        this.toast.show(message);
+      },
     });
   }
 
@@ -788,7 +844,19 @@ export class Receipts {
     };
   }
 
+  detailSubtitle() {
+    const row = this.detail();
+    if (!row) {
+      return '';
+    }
+    if (this.paymentEditOpen()) {
+      return `سند ${row.number}`;
+    }
+    return row.unit?.number ? `واحد ${row.unit.number}` : row.number;
+  }
+
   openForm() {
+    this.detailOpen.set(false);
     this.editingId.set(null);
     this.editBoost.set({});
     this.monthDraft.set({});
