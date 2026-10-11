@@ -37,6 +37,7 @@ services:
     ports:
       - '${BACKEND_PORT:-5001}:5001'
     environment:
+      TZ: Asia/Tehran
       API_HOST: 0.0.0.0
       API_PORT: 5001
       PORT: 5001

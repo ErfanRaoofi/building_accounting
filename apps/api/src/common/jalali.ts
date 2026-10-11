@@ -15,8 +15,38 @@ export const JALALI_MONTHS = [
   'اسفند',
 ];
 
+const TEHRAN = 'Asia/Tehran';
+
+/** Gregorian parts in Tehran. The API container runs in UTC, so local getters are 3:30 behind. */
+function tehranGregorian(date: Date) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: TEHRAN,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(date);
+  const n = (type: string) => Number(parts.find((part) => part.type === type)?.value);
+  const hour = n('hour');
+  return {
+    year: n('year'),
+    month: n('month'),
+    day: n('day'),
+    hour: hour === 24 ? 0 : hour,
+    minute: n('minute'),
+  };
+}
+
 export function toJalali(date: Date) {
-  return toJalaali(date.getFullYear(), date.getMonth() + 1, date.getDate());
+  const g = tehranGregorian(date);
+  return toJalaali(g.year, g.month, g.day);
+}
+
+export function tehranClock(date: Date) {
+  const g = tehranGregorian(date);
+  return { hour: g.hour, minute: g.minute };
 }
 
 export function jalaliToDate(year: number, month: number, day: number) {

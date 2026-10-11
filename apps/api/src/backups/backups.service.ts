@@ -10,7 +10,7 @@ import { createReadStream, existsSync } from 'fs';
 import { rename, stat, unlink } from 'fs/promises';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
-import { toJalali } from '../common/jalali';
+import { tehranClock, toJalali } from '../common/jalali';
 import { paginateQuery, type Pagination } from '../common/pagination';
 import { LocalBackupSink, type BackupSink } from './backup-sink';
 import { parseDatabaseUrl, pgTool, repairSchemaAfterRestore, runPg } from './pg';
@@ -351,9 +351,10 @@ export class BackupsService implements OnModuleInit {
 
   private dumpFilename(date: Date) {
     const j = toJalali(date);
+    const clock = tehranClock(date);
     const pad = (n: number) => String(n).padStart(2, '0');
-    const h = pad(date.getHours());
-    const m = pad(date.getMinutes());
+    const h = pad(clock.hour);
+    const m = pad(clock.minute);
     return `mehr-${j.jy}-${pad(j.jm)}-${pad(j.jd)}-${h}${m}.dump`;
   }
 

@@ -14,13 +14,14 @@ RUN npx nx build api
 FROM node:26.3.1-bookworm-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+ENV TZ=Asia/Tehran
 ENV API_HOST=0.0.0.0
 ENV API_PORT=5001
 ENV DATABASE_URL="postgresql://postgres:postgres@localhost:5432/building_accounting?schema=public"
 ENV DIRECT_URL="postgresql://postgres:postgres@localhost:5432/building_accounting?schema=public"
 # Match postgres:16 server — default bookworm client is 15 and breaks dump/restore
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends curl ca-certificates gnupg openssl \
+  && apt-get install -y --no-install-recommends curl ca-certificates gnupg openssl tzdata \
   && curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /usr/share/keyrings/pgdg.gpg \
   && echo "deb [signed-by=/usr/share/keyrings/pgdg.gpg] http://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" > /etc/apt/sources.list.d/pgdg.list \
   && apt-get update \
