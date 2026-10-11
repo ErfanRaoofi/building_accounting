@@ -15,6 +15,7 @@ import { PaymentsModule } from '../payments/payments.module';
 import { ReportsModule } from '../reports/reports.module';
 import { BackupsModule } from '../backups/backups.module';
 import { SignupRequestsModule } from '../signup-requests/signup-requests.module';
+import { PaymentRequestsModule } from '../payment-requests/payment-requests.module';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { AppController } from './app.controller';
@@ -32,6 +33,7 @@ import { AppService } from './app.service';
     UnitsModule,
     ChargesModule,
     ReceiptsModule,
+    PaymentRequestsModule,
     CategoriesModule,
     PaymentsModule,
     ReportsModule,

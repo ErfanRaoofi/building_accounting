@@ -33,6 +33,7 @@ export class Payments {
   categories = signal<any[]>([]);
   loading = signal(true);
   saving = signal(false);
+  removingId = signal<string | null>(null);
   addingCategory = signal(false);
   formOpen = signal(false);
   categoryOpen = signal(false);
@@ -43,6 +44,13 @@ export class Payments {
     categoryId: ['', Validators.required],
     date: [new Date() as Date, Validators.required],
     amount: [0, Validators.required],
+    depositAmount: [0],
+    balance: [null as number | null],
+    transactionTime: [''],
+    operation: [''],
+    documentNumber: [''],
+    depositReference: [''],
+    trackingNumber: [''],
     payee: [''],
     paymentMethod: ['CASH'],
     description: [''],
@@ -96,6 +104,13 @@ export class Payments {
       categoryId: this.categories()[0]?.id || '',
       date: new Date() as Date,
       amount: 0,
+      depositAmount: 0,
+      balance: null,
+      transactionTime: '',
+      operation: '',
+      documentNumber: '',
+      depositReference: '',
+      trackingNumber: '',
       payee: '',
       paymentMethod: 'CASH',
       description: '',
@@ -116,11 +131,43 @@ export class Payments {
       categoryId: row.categoryId,
       date: new Date(row.date),
       amount: row.amount,
+      depositAmount: row.depositAmount || 0,
+      balance: row.balance,
+      transactionTime: row.transactionTime || '',
+      operation: row.operation || '',
+      documentNumber: row.documentNumber || '',
+      depositReference: row.depositReference || '',
+      trackingNumber: row.trackingNumber || '',
       payee: row.payee || '',
       paymentMethod: row.paymentMethod || 'CASH',
       description: row.description || '',
     });
     this.formOpen.set(true);
+  }
+
+  remove(row: any) {
+    if (this.removingId()) {
+      return;
+    }
+    if (!confirm(`پرداخت ${row.number} حذف شود؟`)) {
+      return;
+    }
+    this.removingId.set(row.id);
+    this.http.delete(`/api/payments/${row.id}`).subscribe({
+      next: () => {
+        this.removingId.set(null);
+        if (this.editingId() === row.id) {
+          this.formOpen.set(false);
+          this.editingId.set(null);
+        }
+        this.loadList();
+        this.toast.show('پرداخت حذف شد');
+      },
+      error: (err) => {
+        this.removingId.set(null);
+        this.toast.show(err.error?.message || 'حذف ناموفق بود');
+      },
+    });
   }
 
   addCategory() {
@@ -163,6 +210,13 @@ export class Payments {
       categoryId: value.categoryId,
       date: isoDate(value.date),
       amount: value.amount,
+      depositAmount: value.depositAmount || 0,
+      balance: value.balance,
+      transactionTime: value.transactionTime,
+      operation: value.operation,
+      documentNumber: value.documentNumber,
+      depositReference: value.depositReference,
+      trackingNumber: value.trackingNumber,
       payee: value.payee,
       paymentMethod: value.paymentMethod,
       description: value.description,

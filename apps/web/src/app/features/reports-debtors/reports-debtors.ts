@@ -2,18 +2,17 @@ import { Component, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { ContextService } from '../../core/context.service';
-import { formatMoney } from '../../core/jalali';
+import { formatMoney, toJalali } from '../../core/jalali';
 import { watchBuildingYear } from '../../core/watch-context';
-import { DEFAULT_PAGE_SIZE, pageQuery } from '../../core/pagination';
+import { ALL_QUERY } from '../../core/pagination';
 import { withBusy } from '../../core/with-busy';
-import { Pager } from '../../shared/pager';
 import { Skeleton } from '../../shared/skeleton';
 
 type MonthOption = { year: number; month: number; title: string };
 
 @Component({
   selector: 'app-reports-debtors',
-  imports: [RouterLink, Pager, Skeleton],
+  imports: [RouterLink, Skeleton],
   templateUrl: './reports-debtors.html',
 })
 export class ReportsDebtors {
@@ -23,9 +22,8 @@ export class ReportsDebtors {
   months = signal<MonthOption[]>([]);
   fromKey = signal('');
   toKey = signal('');
-  page = signal(1);
-  pageSize = signal(DEFAULT_PAGE_SIZE);
   loading = signal(true);
+  private loadSeq = 0;
   formatMoney = formatMoney;
 
   constructor() {
@@ -33,7 +31,6 @@ export class ReportsDebtors {
   }
 
   resetAndLoad() {
-    this.page.set(1);
     this.fromKey.set('');
     this.toKey.set('');
     this.months.set([]);
@@ -46,27 +43,22 @@ export class ReportsDebtors {
 
   setFrom(key: string) {
     this.fromKey.set(key);
-    this.page.set(1);
     this.load();
   }
 
   setTo(key: string) {
     this.toKey.set(key);
-    this.page.set(1);
     this.load();
   }
 
   printQuery(): Record<string, string> {
     const from = this.parseKey(this.fromKey());
-    const to = this.parseKey(this.toKey());
-    if (!from || !to) {
-      return {};
-    }
+    const today = toJalali(new Date());
+    const to = this.parseKey(this.toKey()) ?? { year: today.jy, month: today.jm };
     return {
-      fromYear: String(from.year),
-      fromMonth: String(from.month),
       toYear: String(to.year),
       toMonth: String(to.month),
+      ...(from ? { fromYear: String(from.year), fromMonth: String(from.month) } : {}),
     };
   }
 
@@ -77,13 +69,19 @@ export class ReportsDebtors {
       return '';
     }
     if (from.year === to.year && from.month === to.month) {
-      return from.title;
+      return to.title;
     }
     return `از ${from.title} تا ${to.title}`;
   }
 
-  monthsLabel(row: { unpaidMonths?: MonthOption[] }) {
-    return (row.unpaidMonths || []).map((m) => m.title).join('، ');
+  monthsLabel(row: { unpaidMonths?: Array<MonthOption & { remaining?: number; status?: string }> }) {
+    return (row.unpaidMonths || [])
+      .map((month) => {
+        const amount = month.remaining == null ? '' : ` ${formatMoney(month.remaining)}`;
+        const partial = month.status === 'PARTIAL' ? ' ناقص' : '';
+        return `${month.title}${partial}${amount}`;
+      })
+      .join('، ');
   }
 
   load() {
@@ -93,12 +91,16 @@ export class ReportsDebtors {
       this.loading.set(false);
       return;
     }
+    const seq = ++this.loadSeq;
     withBusy(
       this.loading,
       this.http.get('/api/reports/debtors', {
-        params: { fiscalYearId, ...pageQuery(this.page(), this.pageSize()), ...this.printQuery() },
+        params: { fiscalYearId, ...ALL_QUERY, ...this.printQuery() },
       }),
     ).subscribe((res: any) => {
+      if (seq !== this.loadSeq) {
+        return;
+      }
       this.data.set(res);
       this.months.set(res.months || []);
       if (res.range?.from) {

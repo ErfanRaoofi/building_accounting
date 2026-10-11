@@ -43,6 +43,6 @@
         }
       </tbody>
     </table>
-    <p class="mt-4 font-semibold">تعداد واحد بدهکار: {{ d.summary.units }} — مانده کل: {{ formatMoney(d.summary.remaining) }}</p>
+    <p class="mt-4 font-semibold">تعداد واحد بدهکار تا {{ d.range?.to?.title }}: {{ d.summary.units }} — مانده کل: {{ formatMoney(d.summary.remaining) }}</p>
   }
 </div>

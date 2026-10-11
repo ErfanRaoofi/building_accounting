@@ -20,9 +20,9 @@
         @for (row of d.items; track row.id) {
           <article class="ui-card flex items-start justify-between gap-3">
             <div>
-              <p class="font-bold">{{ row.number }}</p>
-              <p class="ui-muted">{{ formatJalali(row.date) }} · {{ row.categoryPath }}</p>
-              <p class="text-sm text-slate-500">{{ row.payee || 'بدون ذینفع' }}</p>
+              <p class="font-bold">{{ row.documentNumber || row.number }}</p>
+              <p class="ui-muted">{{ formatJalali(row.date) }}@if (row.transactionTime) { · {{ row.transactionTime }} } · {{ row.categoryPath }}</p>
+              <p class="text-sm text-slate-600">{{ row.description || row.payee || 'بدون شرح' }}</p>
             </div>
             <p class="ui-money font-semibold">{{ formatMoney(row.amount) }}</p>
           </article>
@@ -32,21 +32,23 @@
         <table class="ui-table">
           <thead>
             <tr>
-              <th>شماره</th>
               <th>تاریخ</th>
+              <th>شرح</th>
               <th>سرفصل</th>
-              <th>ذینفع</th>
-              <th>مبلغ</th>
+              <th>برداشت</th>
+              <th>مانده</th>
+              <th>پیگیری</th>
             </tr>
           </thead>
           <tbody>
             @for (row of d.items; track row.id) {
               <tr>
-                <td>{{ row.number }}</td>
-                <td>{{ formatJalali(row.date) }}</td>
+                <td>{{ formatJalali(row.date) }}@if (row.transactionTime) { <span class="block text-xs text-slate-500" dir="ltr">{{ row.transactionTime }}</span> }</td>
+                <td class="max-w-xs whitespace-normal">{{ row.description || row.payee }}</td>
                 <td>{{ row.categoryPath }}</td>
-                <td>{{ row.payee }}</td>
                 <td class="ui-money">{{ formatMoney(row.amount) }}</td>
+                <td class="ui-money">{{ row.balance == null ? '' : formatMoney(row.balance) }}</td>
+                <td dir="ltr">{{ row.trackingNumber }}</td>
               </tr>
             }
           </tbody>

@@ -8,6 +8,9 @@ export class FormModal {
   open = model(false);
   title = input('');
   wide = input(false);
+  wider = input(false);
+  level = input(0);
+  closeOnEscape = input(true);
 
   close() {
     this.open.set(false);
@@ -15,7 +18,7 @@ export class FormModal {
 
   @HostListener('document:keydown.escape')
   onEscape() {
-    if (this.open()) {
+    if (this.open() && this.closeOnEscape()) {
       this.close();
     }
   }

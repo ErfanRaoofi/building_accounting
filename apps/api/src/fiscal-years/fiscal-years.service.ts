@@ -6,6 +6,7 @@ import { AuthUser } from '../common/decorators/current-user.decorator';
 import { CreateFiscalYearDto, UpdateFiscalYearDto } from './dto';
 import { paginateQuery, type Pagination } from '../common/pagination';
 import { STAFF_ROLES } from '../common/roles';
+import { ensureUnitReceiptsForFiscalYear } from '../receipts/unit-receipt';
 
 @Injectable()
 export class FiscalYearsService {
@@ -38,13 +39,22 @@ export class FiscalYearsService {
     if (open) {
       throw new BadRequestException('ابتدا سال مالی باز فعلی را ببندید');
     }
-    return this.prisma.fiscalYear.create({
-      data: {
+    return this.prisma.$transaction(async (tx) => {
+      const fy = await tx.fiscalYear.create({
+        data: {
+          buildingId: dto.buildingId,
+          title: dto.title,
+          startDate: start,
+          endDate: end,
+        },
+      });
+      await ensureUnitReceiptsForFiscalYear(tx, {
         buildingId: dto.buildingId,
-        title: dto.title,
-        startDate: start,
-        endDate: end,
-      },
+        fiscalYearId: fy.id,
+        title: fy.title,
+        createdById: user.id,
+      });
+      return fy;
     });
   }
 

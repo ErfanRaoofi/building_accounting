@@ -1,17 +1,24 @@
 @if (open()) {
   <button
-    class="ui-overlay z-[65]"
+    class="ui-overlay"
+    [class.z-[65]]="level() === 0"
+    [class.z-[75]]="level() > 0"
     type="button"
     (click)="close()"
     aria-label="بستن"
     animate.enter="ui-overlay-enter"
     animate.leave="ui-overlay-leave"
   ></button>
-  <div class="pointer-events-none fixed inset-0 z-[66] flex items-end justify-center sm:items-center sm:p-6 print:hidden">
+  <div
+    class="pointer-events-none fixed inset-0 flex items-end justify-center sm:items-center sm:p-6 print:hidden"
+    [class.z-[66]]="level() === 0"
+    [class.z-[76]]="level() > 0"
+  >
     <div
       class="pointer-events-auto w-full rounded-t-3xl bg-white shadow-2xl sm:rounded-3xl"
-      [class.max-w-md]="!wide()"
-      [class.max-w-xl]="wide()"
+      [class.max-w-md]="!wide() && !wider()"
+      [class.max-w-xl]="wide() && !wider()"
+      [class.max-w-4xl]="wider()"
       role="dialog"
       aria-modal="true"
       [attr.aria-label]="title()"

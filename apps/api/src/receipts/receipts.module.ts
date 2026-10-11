@@ -7,5 +7,7 @@ import { ChargesModule } from '../charges/charges.module';
   imports: [ChargesModule],
   controllers: [ReceiptsController],
   providers: [ReceiptsService],
+  exports: [ReceiptsService],
 })
 export class ReceiptsModule {}
+

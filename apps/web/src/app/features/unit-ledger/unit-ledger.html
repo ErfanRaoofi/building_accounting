@@ -1,11 +1,22 @@
 <section class="ui-page">
-  <div class="ui-page-head">
-    <div>
-      <h1 class="ui-title">دفتر حساب واحد {{ data()?.unit?.number }}</h1>
-      <p class="ui-muted">گردش شارژ و دریافت‌های این واحد</p>
+  @if (isResidentPortal()) {
+    <div class="ui-page-head">
+      <div>
+        <h1 class="ui-title">واحد {{ data()?.unit?.number || '—' }}</h1>
+        <p class="ui-muted">بدهی، بستانکاری و پرداخت‌های شما</p>
+      </div>
+      <button class="ui-btn-primary w-full sm:w-auto" type="button" (click)="openPaymentForm()">ثبت پرداخت</button>
     </div>
-    <a class="ui-btn-ghost w-full sm:w-auto" routerLink="/units">بازگشت</a>
-  </div>
+  } @else {
+    <div class="ui-page-head">
+      <div>
+        <h1 class="ui-title">دفتر حساب واحد {{ data()?.unit?.number }}</h1>
+        <p class="ui-muted">دریافت هر ماه را روی کارت همان ماه، به ریال، اصلاح کنید. روی سند شارژ همین واحد می‌نشیند.</p>
+      </div>
+      <a class="ui-btn-ghost w-full sm:w-auto" routerLink="/units">بازگشت</a>
+    </div>
+  }
+
   @if (loading()) {
     <app-skeleton kind="ledger" />
   } @else if (data(); as d) {
@@ -28,15 +39,60 @@
           {{ formatMoney(d.totals.net) }}
         </p>
       </div>
-      <div class="ui-card">
-        <p class="ui-muted">شارژ صادرشده</p>
-        <p class="mt-1 ui-money text-xl font-bold">{{ formatMoney(d.totals.debit) }}</p>
-      </div>
-      <div class="ui-card">
-        <p class="ui-muted">دریافت‌ها</p>
-        <p class="mt-1 ui-money text-xl font-bold text-emerald-700">{{ formatMoney(d.totals.credit) }}</p>
-      </div>
+      @if (!isResidentPortal()) {
+        <div class="ui-card">
+          <p class="ui-muted">شارژ صادرشده</p>
+          <p class="mt-1 ui-money text-xl font-bold">{{ formatMoney(d.totals.debit) }}</p>
+        </div>
+        <div class="ui-card">
+          <p class="ui-muted">دریافت‌ها</p>
+          <p class="mt-1 ui-money text-xl font-bold text-emerald-700">{{ formatMoney(d.totals.credit) }}</p>
+        </div>
+      }
     </div>
+
+    @if (isResidentPortal()) {
+      <div class="flex items-center justify-between gap-3">
+        <h2 class="text-lg font-bold">درخواست‌های پرداخت</h2>
+        <button class="ui-btn-ghost h-9 px-3" type="button" (click)="openPaymentForm()">درخواست جدید</button>
+      </div>
+      @if (requestsLoading() && !requests().length) {
+        <app-skeleton kind="list" />
+      } @else if (!requests().length) {
+        <p class="ui-empty">هنوز درخواستی ثبت نکرده‌اید.</p>
+      } @else {
+        <div class="ui-cards">
+          @for (row of requests(); track row.id) {
+            <article class="ui-card space-y-2">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <p class="font-bold">{{ formatJalali(row.date) }} · {{ methodLabel(row.paymentMethod) }}</p>
+                  @if (row.description) {
+                    <p class="ui-muted">{{ row.description }}</p>
+                  }
+                  @if (row.status === 'REJECTED' && row.rejectReason) {
+                    <p class="text-sm text-rose-700">دلیل رد: {{ row.rejectReason }}</p>
+                  }
+                  @if (row.status === 'APPROVED' && row.receipt?.number) {
+                    <p class="ui-muted">سند {{ row.receipt.number }}</p>
+                  }
+                </div>
+                <div class="flex flex-col items-end gap-2">
+                  <p class="ui-money font-semibold">{{ formatMoney(row.amount) }}</p>
+                  <span [class]="requestStatusClass(row.status)">{{ requestStatusLabel(row.status) }}</span>
+                </div>
+              </div>
+              @if (row.imagePath) {
+                <a class="block overflow-hidden rounded-lg border border-slate-200" [href]="row.imagePath" target="_blank" rel="noopener">
+                  <img class="max-h-40 w-full object-contain bg-slate-50" [src]="row.imagePath" alt="فیش پرداخت" />
+                </a>
+              }
+            </article>
+          }
+        </div>
+      }
+    }
+
     <h2 class="text-lg font-bold">شارژ ماهانه</h2>
     @if (!d.invoices.total) {
       <p class="ui-empty">شارژ ماهانه‌ای صادر نشده است.</p>
@@ -50,56 +106,108 @@
                 {{ statusLabel(row.status) }}
               </span>
             </div>
-            <div class="grid grid-cols-3 gap-2 text-sm">
-              <div>
-                <p class="text-slate-500">مبلغ</p>
-                <p class="ui-money font-semibold">{{ formatMoney(row.amount) }}</p>
+            @if (!isResidentPortal()) {
+              <div class="flex gap-2">
+                <button
+                  class="ui-btn-ghost h-8 px-3 text-xs"
+                  type="button"
+                  [disabled]="savingId() === row.id"
+                  [class.ui-chip-muted]="row.occupancy === 'VACANT'"
+                  (click)="setOccupancy(row, row.occupancy === 'VACANT' ? 'OCCUPIED' : 'VACANT')"
+                >
+                  {{ row.occupancy === 'VACANT' ? 'خالی · ۹۰۰ هزار' : 'ساکن' }}
+                </button>
               </div>
+            } @else if (row.occupancy === 'VACANT') {
+              <span class="ui-chip-muted">خالی</span>
+            }
+            <div class="grid grid-cols-2 gap-2 text-sm">
               <div>
-                <p class="text-slate-500">پرداخت</p>
-                <p class="ui-money font-semibold">{{ formatMoney(row.paidAmount) }}</p>
+                <p class="text-slate-500">شارژ ماه</p>
+                <p class="ui-money font-semibold">{{ formatMoney(row.amount) }}</p>
               </div>
               <div>
                 <p class="text-slate-500">مانده</p>
                 <p class="ui-money font-semibold">{{ formatMoney(row.remaining) }}</p>
               </div>
             </div>
+            @if (!isResidentPortal()) {
+              <label class="ui-field">
+                <span class="ui-label">دریافت این ماه (ریال)</span>
+                <div (focusout)="commitPaid(row)">
+                  <app-money-input
+                    [ngModel]="row.paidAmount"
+                    (ngModelChange)="rememberPaid(row.id, $event)"
+                    (enter)="commitPaid(row)"
+                  />
+                </div>
+              </label>
+            } @else {
+              <div class="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <p class="text-slate-500">پرداخت‌شده</p>
+                  <p class="ui-money font-semibold text-emerald-700">{{ formatMoney(row.paidAmount) }}</p>
+                </div>
+              </div>
+            }
           </article>
         }
       </div>
-      <div class="ui-table-wrap ui-table-desktop">
-        <table class="ui-table">
-          <thead>
-            <tr>
-              <th>ماه</th>
-              <th>مبلغ</th>
-              <th>پرداخت‌شده</th>
-              <th>مانده</th>
-              <th>وضعیت</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (row of d.invoices.items; track row.id) {
+      @if (!isResidentPortal()) {
+        <div class="ui-table-wrap ui-table-desktop">
+          <table class="ui-table">
+            <thead>
               <tr>
-                <td>{{ row.monthTitle }}</td>
-                <td class="ui-money">{{ formatMoney(row.amount) }}</td>
-                <td class="ui-money">{{ formatMoney(row.paidAmount) }}</td>
-                <td class="ui-money">{{ formatMoney(row.remaining) }}</td>
-                <td>
-                  <span [class]="row.status === 'PAID' ? 'ui-chip-paid' : row.status === 'PARTIAL' ? 'ui-chip-partial' : 'ui-chip-unpaid'">
-                    {{ statusLabel(row.status) }}
-                  </span>
-                </td>
+                <th>ماه</th>
+                <th>مبلغ</th>
+                <th>دریافت (ریال)</th>
+                <th>مانده</th>
+                <th>وضعیت</th>
+                <th>سکونت ماه</th>
               </tr>
-            }
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              @for (row of d.invoices.items; track row.id) {
+                <tr>
+                  <td>{{ row.monthTitle }}</td>
+                  <td class="ui-money">{{ formatMoney(row.amount) }}</td>
+                  <td class="min-w-40">
+                    <div (focusout)="commitPaid(row)">
+                      <app-money-input
+                        [ngModel]="row.paidAmount"
+                        (ngModelChange)="rememberPaid(row.id, $event)"
+                        (enter)="commitPaid(row)"
+                      />
+                    </div>
+                  </td>
+                  <td class="ui-money">{{ formatMoney(row.remaining) }}</td>
+                  <td>
+                    <span [class]="row.status === 'PAID' ? 'ui-chip-paid' : row.status === 'PARTIAL' ? 'ui-chip-partial' : 'ui-chip-unpaid'">
+                      {{ statusLabel(row.status) }}
+                    </span>
+                  </td>
+                  <td>
+                    <button
+                      class="ui-btn-ghost h-8 px-3 text-xs"
+                      type="button"
+                      [disabled]="savingId() === row.id"
+                      (click)="setOccupancy(row, row.occupancy === 'VACANT' ? 'OCCUPIED' : 'VACANT')"
+                    >
+                      {{ row.occupancy === 'VACANT' ? 'خالی' : 'ساکن' }}
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
       <app-pager class="mt-3 block" [(page)]="invoicePage" [(size)]="invoiceSize" [total]="d.invoices.total" (changed)="load()" />
     }
-    <h2 class="text-lg font-bold">دریافت‌ها</h2>
+
+    <h2 class="text-lg font-bold">{{ isResidentPortal() ? 'پرداخت‌های تأییدشده' : 'دریافت‌ها' }}</h2>
     @if (!d.receipts.total) {
-      <p class="ui-empty">دریافتی برای این واحد ثبت نشده است.</p>
+      <p class="ui-empty">{{ isResidentPortal() ? 'پرداخت تأییدشده‌ای ثبت نشده است.' : 'دریافتی برای این واحد ثبت نشده است.' }}</p>
     } @else {
       <div class="ui-cards">
         @for (row of d.receipts.items; track row.id) {
@@ -107,34 +215,97 @@
             <div>
               <p class="font-bold">{{ row.number }}</p>
               <p class="ui-muted">{{ formatJalali(row.date) }} · {{ row.receiptType?.name }}</p>
+              @if (row.payments?.length > 1) {
+                <p class="ui-muted">{{ row.payments.length }} پرداخت روی همین سند</p>
+              }
             </div>
             <p class="ui-money font-semibold">{{ formatMoney(row.totalAmount) }}</p>
           </article>
         }
       </div>
-      <div class="ui-table-wrap ui-table-desktop">
-        <table class="ui-table">
-          <thead>
-            <tr>
-              <th>شماره</th>
-              <th>تاریخ</th>
-              <th>نوع</th>
-              <th>مبلغ</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (row of d.receipts.items; track row.id) {
+      @if (!isResidentPortal()) {
+        <div class="ui-table-wrap ui-table-desktop">
+          <table class="ui-table">
+            <thead>
               <tr>
-                <td>{{ row.number }}</td>
-                <td>{{ formatJalali(row.date) }}</td>
-                <td>{{ row.receiptType?.name }}</td>
-                <td class="ui-money">{{ formatMoney(row.totalAmount) }}</td>
+                <th>شماره</th>
+                <th>تاریخ</th>
+                <th>نوع</th>
+                <th>مبلغ</th>
               </tr>
-            }
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              @for (row of d.receipts.items; track row.id) {
+                <tr>
+                  <td>{{ row.number }}</td>
+                  <td>{{ formatJalali(row.date) }}</td>
+                  <td>
+                    {{ row.receiptType?.name }}
+                    @if (row.payments?.length > 1) {
+                      <span class="ui-muted"> · {{ row.payments.length }} پرداخت</span>
+                    }
+                  </td>
+                  <td class="ui-money">{{ formatMoney(row.totalAmount) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
       <app-pager class="mt-3 block" [(page)]="receiptPage" [(size)]="receiptSize" [total]="d.receipts.total" (changed)="load()" />
     }
+  }
+
+  @if (isResidentPortal() && formOpen()) {
+    <div class="fixed inset-0 z-40 flex items-end justify-center bg-slate-900/40 p-0 sm:items-center sm:p-4" (click)="closePaymentForm()">
+      <div class="max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-white p-4 shadow-xl sm:rounded-2xl sm:p-6" (click)="$event.stopPropagation()">
+        <div class="mb-4 flex items-start justify-between gap-3">
+          <div>
+            <h2 class="text-lg font-bold">ثبت درخواست پرداخت</h2>
+            <p class="ui-muted">پس از تأیید مدیر، روی بدهی واحد اعمال می‌شود.</p>
+          </div>
+          <button class="ui-btn-ghost h-9 px-3" type="button" (click)="closePaymentForm()">بستن</button>
+        </div>
+        <form class="space-y-3" [formGroup]="form" (ngSubmit)="submitPayment()">
+          <label class="ui-field">
+            <span class="ui-label">مبلغ (ریال)</span>
+            <app-money-input formControlName="amount" />
+          </label>
+          <label class="ui-field">
+            <span class="ui-label">تاریخ پرداخت</span>
+            <app-jalali-datepicker formControlName="date" />
+          </label>
+          <label class="ui-field">
+            <span class="ui-label">روش پرداخت</span>
+            <select class="ui-input" formControlName="paymentMethod">
+              <option value="TRANSFER">حواله بانکی</option>
+              <option value="CARD">کارت به کارت</option>
+              <option value="CASH">نقد</option>
+              <option value="OTHER">سایر</option>
+            </select>
+          </label>
+          <label class="ui-field">
+            <span class="ui-label">توضیح (اختیاری)</span>
+            <input class="ui-input" formControlName="description" placeholder="شماره پیگیری و ..." />
+          </label>
+          <label class="ui-field">
+            <span class="ui-label">تصویر فیش</span>
+            <input
+              class="ui-input"
+              type="file"
+              accept="image/*"
+              capture="environment"
+              (change)="onImagePicked($event)"
+            />
+          </label>
+          @if (imagePreview(); as preview) {
+            <img class="max-h-48 w-full rounded-lg border border-slate-200 object-contain bg-slate-50" [src]="preview" alt="پیش‌نمایش فیش" />
+          }
+          <button class="ui-btn-primary w-full" type="submit" [disabled]="submitting()">
+            <app-busy [on]="submitting()" busyText="در حال ارسال...">ارسال درخواست</app-busy>
+          </button>
+        </form>
+      </div>
+    </div>
   }
 </section>

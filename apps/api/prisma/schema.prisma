@@ -67,6 +67,12 @@ enum BackupStatus {
   FAILED
 }
 
+enum PaymentRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id               String           @id @default(uuid())
   email            String           @unique
@@ -82,6 +88,22 @@ model User {
   payments         Payment[]        @relation("PaymentCreatedBy")
   backups          Backup[]         @relation("BackupCreatedBy")
   reviewedSignups  SignupRequest[]  @relation("SignupReviewedBy")
+  refreshTokens    RefreshToken[]
+  submittedPaymentRequests PaymentRequest[] @relation("PaymentRequestSubmittedBy")
+  reviewedPaymentRequests  PaymentRequest[] @relation("PaymentRequestReviewedBy")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model Building {
@@ -90,8 +112,9 @@ model Building {
   address            String?
   managerName        String?
   phone              String?
-  logoUrl            String?
-  isActive           Boolean            @default(true)
+  logoUrl             String?
+  vacantMonthlyCharge Decimal  @default(9000000) @db.Decimal(18, 0)
+  isActive            Boolean  @default(true)
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
   fiscalYears        FiscalYear[]
@@ -103,6 +126,7 @@ model Building {
   payments           Payment[]
   accesses           BuildingAccess[]
   signupRequests     SignupRequest[]
+  paymentRequests    PaymentRequest[]
 }
 
 model BuildingAccess {
@@ -153,9 +177,10 @@ model FiscalYear {
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   building    Building         @relation(fields: [buildingId], references: [id], onDelete: Cascade)
-  invoices    ChargeInvoice[]
-  receipts    Receipt[]
-  payments    Payment[]
+  invoices         ChargeInvoice[]
+  receipts         Receipt[]
+  payments         Payment[]
+  paymentRequests  PaymentRequest[]
 
   @@unique([buildingId, title])
 }
@@ -195,6 +220,7 @@ model Unit {
   invoices            ChargeInvoice[]
   receipts            Receipt[]
   residents           UnitResident[]
+  paymentRequests     PaymentRequest[]
 
   @@unique([buildingId, number])
 }
@@ -205,6 +231,7 @@ model ChargeInvoice {
   fiscalYearId  String
   jalaliYear    Int
   jalaliMonth   Int
+  occupancy     OccupancyStatus     @default(OCCUPIED)
   amount        Decimal             @db.Decimal(18, 0)
   paidAmount    Decimal             @default(0) @db.Decimal(18, 0)
   status        ChargeInvoiceStatus @default(UNPAID)
@@ -219,14 +246,15 @@ model ChargeInvoice {
 }
 
 model ReceiptType {
-  id         String      @id @default(uuid())
+  id         String           @id @default(uuid())
   buildingId String
   name       String
   kind       ReceiptKind
-  isSystem   Boolean     @default(false)
-  createdAt  DateTime    @default(now())
-  building   Building    @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  isSystem   Boolean          @default(false)
+  createdAt  DateTime         @default(now())
+  building   Building         @relation(fields: [buildingId], references: [id], onDelete: Cascade)
   receipts   Receipt[]
+  payments   ReceiptPayment[]
 
   @@unique([buildingId, name])
 }
@@ -248,21 +276,75 @@ model Receipt {
   fiscalYear    FiscalYear    @relation(fields: [fiscalYearId], references: [id], onDelete: Cascade)
   receiptType   ReceiptType   @relation(fields: [receiptTypeId], references: [id], onDelete: Restrict)
   unit          Unit?         @relation(fields: [unitId], references: [id], onDelete: SetNull)
-  createdBy     User          @relation("ReceiptCreatedBy", fields: [createdById], references: [id])
-  lines         ReceiptLine[]
+  createdBy       User             @relation("ReceiptCreatedBy", fields: [createdById], references: [id])
+  lines           ReceiptLine[]
+  payments        ReceiptPayment[]
+  paymentRequests PaymentRequest[]
 
   @@unique([buildingId, fiscalYearId, number])
   @@index([buildingId, fiscalYearId, date])
+  @@index([fiscalYearId, unitId])
+}
+
+model ReceiptPayment {
+  id            String        @id @default(uuid())
+  receiptId     String
+  receiptTypeId String
+  date          DateTime      @db.Date
+  amount        Decimal       @db.Decimal(18, 0)
+  paymentMethod PaymentMethod @default(CASH)
+  description   String?
+  createdAt     DateTime      @default(now())
+  receipt       Receipt       @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+  receiptType   ReceiptType   @relation(fields: [receiptTypeId], references: [id], onDelete: Restrict)
+  lines         ReceiptLine[]
+
+  @@index([receiptId, date])
 }
 
 model ReceiptLine {
-  id              String         @id @default(uuid())
+  id              String          @id @default(uuid())
   receiptId       String
+  paymentId       String
   chargeInvoiceId String?
-  amount          Decimal        @db.Decimal(18, 0)
+  amount          Decimal         @db.Decimal(18, 0)
   description     String?
-  receipt         Receipt        @relation(fields: [receiptId], references: [id], onDelete: Cascade)
-  chargeInvoice   ChargeInvoice? @relation(fields: [chargeInvoiceId], references: [id], onDelete: Restrict)
+  receipt         Receipt         @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+  payment         ReceiptPayment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  chargeInvoice   ChargeInvoice?  @relation(fields: [chargeInvoiceId], references: [id], onDelete: Restrict)
+
+  @@index([paymentId])
+  @@index([chargeInvoiceId])
+}
+
+model PaymentRequest {
+  id            String               @id @default(uuid())
+  buildingId    String
+  fiscalYearId  String
+  unitId        String
+  amount        Decimal              @db.Decimal(18, 0)
+  date          DateTime             @db.Date
+  paymentMethod PaymentMethod        @default(TRANSFER)
+  description   String?
+  imagePath     String
+  status        PaymentRequestStatus @default(PENDING)
+  submittedById String
+  reviewedById  String?
+  reviewedAt    DateTime?
+  rejectReason  String?
+  receiptId     String?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  building      Building             @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  fiscalYear    FiscalYear           @relation(fields: [fiscalYearId], references: [id], onDelete: Cascade)
+  unit          Unit                 @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  submittedBy   User                 @relation("PaymentRequestSubmittedBy", fields: [submittedById], references: [id], onDelete: Restrict)
+  reviewedBy    User?                @relation("PaymentRequestReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+  receipt       Receipt?             @relation(fields: [receiptId], references: [id], onDelete: SetNull)
+
+  @@index([buildingId, status])
+  @@index([unitId, createdAt])
+  @@index([fiscalYearId, status])
 }
 
 model ExpenseCategory {
@@ -286,10 +368,17 @@ model Payment {
   categoryId    String
   number        String
   date          DateTime        @db.Date
-  amount        Decimal         @db.Decimal(18, 0)
-  payee         String?
-  paymentMethod PaymentMethod   @default(CASH)
-  description   String?
+  amount           Decimal         @db.Decimal(18, 0)
+  depositAmount    Decimal         @default(0) @db.Decimal(18, 0)
+  balance          Decimal?        @db.Decimal(18, 0)
+  transactionTime  String?
+  operation        String?
+  documentNumber   String?
+  depositReference String?
+  trackingNumber   String?
+  payee            String?
+  paymentMethod    PaymentMethod   @default(CASH)
+  description      String?
   createdById   String
   createdAt     DateTime        @default(now())
   building      Building        @relation(fields: [buildingId], references: [id], onDelete: Cascade)

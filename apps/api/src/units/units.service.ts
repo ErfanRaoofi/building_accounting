@@ -1,14 +1,17 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { OccupancyStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AccessService } from '../common/access.service';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 import { CreateUnitDto, UpdateUnitDto } from './dto';
-import { JALALI_MONTHS, money } from '../common/jalali';
+import { JALALI_MONTHS, money, toJalali } from '../common/jalali';
 import { sortByUnitNumber } from '../common/unit-number';
 import { pageRows, paginateQuery, type Pagination } from '../common/pagination';
-import { allocateCredit, creditOf } from '../charges/charge-credit';
+import { creditOf } from '../charges/charge-credit';
+import { applyUnitOccupancy } from '../charges/charge-occupancy';
+import { DEFAULT_VACANT_MONTHLY_CHARGE, monthlyChargeFor, occupiedMonthlyCharge } from '../charges/charge-rate';
 import { RESIDENT_ROLES, STAFF_ROLES } from '../common/roles';
+import { ensureUnitReceipt } from '../receipts/unit-receipt';
 
 @Injectable()
 export class UnitsService {
@@ -26,33 +29,52 @@ export class UnitsService {
       }
       where.id = { in: await this.access.residentUnitIds(user, buildingId) };
     }
-    const rows = await this.prisma.unit.findMany({
-      where,
-      include: { tariff: true },
-    });
-    const mapped = sortByUnitNumber(rows, (u) => u.number).map((u) => this.map(u));
+    const [rows, vacantRate] = await Promise.all([
+      this.prisma.unit.findMany({
+        where,
+        include: { tariff: true },
+      }),
+      this.vacantRateOf(buildingId),
+    ]);
+    const mapped = sortByUnitNumber(rows, (u) => u.number).map((u) => this.map(u, vacantRate));
     return pageRows(mapped, pagination);
   }
 
   async create(user: AuthUser, dto: CreateUnitDto) {
     await this.access.assertRoles(user, dto.buildingId, STAFF_ROLES);
-    const row = await this.prisma.unit.create({
-      data: {
-        buildingId: dto.buildingId,
-        number: dto.number,
-        floor: dto.floor,
-        area: dto.area,
-        bedrooms: dto.bedrooms,
-        occupancy: dto.occupancy,
-        ownerName: dto.ownerName,
-        residentName: dto.residentName,
-        phone: dto.phone,
-        tariffId: dto.tariffId,
-        customMonthlyCharge: dto.customMonthlyCharge,
-      },
-      include: { tariff: true },
+    const row = await this.prisma.$transaction(async (tx) => {
+      const unit = await tx.unit.create({
+        data: {
+          buildingId: dto.buildingId,
+          number: dto.number,
+          floor: dto.floor,
+          area: dto.area,
+          bedrooms: dto.bedrooms,
+          occupancy: dto.occupancy,
+          ownerName: dto.ownerName,
+          residentName: dto.residentName,
+          phone: dto.phone,
+          tariffId: dto.tariffId,
+          customMonthlyCharge: dto.customMonthlyCharge,
+        },
+        include: { tariff: true },
+      });
+      const fy = await tx.fiscalYear.findFirst({
+        where: { buildingId: dto.buildingId, status: 'OPEN' },
+        orderBy: { startDate: 'desc' },
+      });
+      if (fy) {
+        await ensureUnitReceipt(tx, {
+          buildingId: dto.buildingId,
+          fiscalYearId: fy.id,
+          unitId: unit.id,
+          createdById: user.id,
+          title: fy.title,
+        });
+      }
+      return unit;
     });
-    return this.map(row);
+    return this.map(row, await this.vacantRateOf(dto.buildingId));
   }
 
   async update(user: AuthUser, id: string, dto: UpdateUnitDto) {
@@ -78,7 +100,10 @@ export class UnitsService {
       },
       include: { tariff: true },
     });
-    return this.map(row);
+    if (dto.occupancy && dto.occupancy !== unit.occupancy) {
+      await this.applyCurrentOccupancy(row);
+    }
+    return this.map(row, await this.vacantRateOf(unit.buildingId));
   }
 
   async ledger(
@@ -92,7 +117,6 @@ export class UnitsService {
       throw new NotFoundException('واحد یافت نشد');
     }
     await this.access.assertUnitReadable(user, id);
-    await this.prisma.$transaction((tx) => allocateCredit(tx, id, fiscalYearId));
     const invoiceWhere = { unitId: id, fiscalYearId };
     const receiptWhere = { unitId: id, fiscalYearId };
     const [invoices, receipts] = await Promise.all([
@@ -118,7 +142,7 @@ export class UnitsService {
         (skip, take) =>
           this.prisma.receipt.findMany({
             where: receiptWhere,
-            include: { receiptType: true, lines: true },
+            include: { receiptType: true, lines: true, payments: { orderBy: { date: 'asc' } } },
             orderBy: { date: 'asc' },
             skip,
             take,
@@ -126,7 +150,7 @@ export class UnitsService {
         () =>
           this.prisma.receipt.findMany({
             where: receiptWhere,
-            include: { receiptType: true, lines: true },
+            include: { receiptType: true, lines: true, payments: { orderBy: { date: 'asc' } } },
             orderBy: { date: 'asc' },
           }),
       ),
@@ -141,7 +165,7 @@ export class UnitsService {
     const remaining = money(remainingAgg._sum.amount || 0) - money(remainingAgg._sum.paidAmount || 0);
     const chargeCredit = await creditOf(this.prisma, id, fiscalYearId);
     return {
-      unit: this.map(unit),
+      unit: this.map(unit, await this.vacantRateOf(unit.buildingId)),
       invoices: {
         ...invoices,
         items: invoices.items.map((i) => ({
@@ -158,6 +182,7 @@ export class UnitsService {
           ...r,
           totalAmount: money(r.totalAmount),
           lines: r.lines.map((l) => ({ ...l, amount: money(l.amount) })),
+          payments: (r.payments || []).map((payment) => ({ ...payment, amount: money(payment.amount) })),
         })),
       },
       totals: { debit, credit, balance: debit - credit, remaining, chargeCredit, net: remaining - chargeCredit },
@@ -168,16 +193,35 @@ export class UnitsService {
     customMonthlyCharge: { toString(): string } | null;
     tariff?: { monthlyAmount: { toString(): string } } | null;
   }) {
-    if (unit.customMonthlyCharge != null) {
-      return money(unit.customMonthlyCharge);
-    }
-    if (unit.tariff) {
-      return money(unit.tariff.monthlyAmount);
-    }
-    return 0;
+    return occupiedMonthlyCharge(unit);
   }
 
-  private map(unit: any) {
+  private async vacantRateOf(buildingId: string) {
+    const building = await this.prisma.building.findUnique({
+      where: { id: buildingId },
+      select: { vacantMonthlyCharge: true },
+    });
+    return money(building?.vacantMonthlyCharge ?? DEFAULT_VACANT_MONTHLY_CHARGE);
+  }
+
+  private async applyCurrentOccupancy(unit: {
+    id: string;
+    buildingId: string;
+    occupancy: OccupancyStatus;
+    customMonthlyCharge: { toString(): string } | null;
+    tariff: { monthlyAmount: { toString(): string } } | null;
+  }) {
+    const [years, vacantRate] = await Promise.all([
+      this.prisma.fiscalYear.findMany({ where: { buildingId: unit.buildingId, status: 'OPEN' }, select: { id: true } }),
+      this.vacantRateOf(unit.buildingId),
+    ]);
+    const today = toJalali(new Date());
+    await this.prisma.$transaction((tx) =>
+      applyUnitOccupancy(tx, unit, unit.occupancy, today.jy, today.jm, years.map((year) => year.id), vacantRate, true),
+    );
+  }
+
+  private map(unit: any, vacantRate: number) {
     return {
       ...unit,
       area: unit.area == null ? null : money(unit.area),
@@ -185,7 +229,8 @@ export class UnitsService {
       tariff: unit.tariff
         ? { ...unit.tariff, monthlyAmount: money(unit.tariff.monthlyAmount) }
         : unit.tariff,
-      monthlyCharge: this.monthlyChargeOf(unit),
+      monthlyCharge: monthlyChargeFor(unit, unit.occupancy, vacantRate),
+      occupiedCharge: occupiedMonthlyCharge(unit),
     };
   }
 }

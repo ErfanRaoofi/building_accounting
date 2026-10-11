@@ -19,6 +19,36 @@ export class CreatePaymentDto {
   amount: number;
 
   @IsOptional()
+  @IsNumber()
+  @Min(0)
+  depositAmount?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  balance?: number;
+
+  @IsOptional()
+  @IsString()
+  transactionTime?: string;
+
+  @IsOptional()
+  @IsString()
+  operation?: string;
+
+  @IsOptional()
+  @IsString()
+  documentNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  depositReference?: string;
+
+  @IsOptional()
+  @IsString()
+  trackingNumber?: string;
+
+  @IsOptional()
   @IsString()
   payee?: string;
 
@@ -44,6 +74,36 @@ export class UpdatePaymentDto {
   @IsNumber()
   @Min(1)
   amount?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  depositAmount?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  balance?: number;
+
+  @IsOptional()
+  @IsString()
+  transactionTime?: string;
+
+  @IsOptional()
+  @IsString()
+  operation?: string;
+
+  @IsOptional()
+  @IsString()
+  documentNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  depositReference?: string;
+
+  @IsOptional()
+  @IsString()
+  trackingNumber?: string;
 
   @IsOptional()
   @IsString()

@@ -18,7 +18,8 @@ export async function creditOf(tx: Db, unitId: string, fiscalYearId: string) {
   const sum = await tx.receiptLine.aggregate({
     where: {
       chargeInvoiceId: null,
-      receipt: { unitId, fiscalYearId, receiptType: { kind: ReceiptKind.CHARGE } },
+      payment: { receiptType: { kind: ReceiptKind.CHARGE } },
+      receipt: { unitId, fiscalYearId },
     },
     _sum: { amount: true },
   });
@@ -29,7 +30,8 @@ export async function creditsByUnit(tx: Db, fiscalYearId: string) {
   const lines = await tx.receiptLine.findMany({
     where: {
       chargeInvoiceId: null,
-      receipt: { fiscalYearId, unitId: { not: null }, receiptType: { kind: ReceiptKind.CHARGE } },
+      payment: { receiptType: { kind: ReceiptKind.CHARGE } },
+      receipt: { fiscalYearId, unitId: { not: null } },
     },
     select: { amount: true, receipt: { select: { unitId: true } } },
   });
@@ -58,9 +60,10 @@ export async function allocateCredit(tx: Prisma.TransactionClient, unitId: strin
   const lines = await tx.receiptLine.findMany({
     where: {
       chargeInvoiceId: null,
-      receipt: { unitId, fiscalYearId, receiptType: { kind: ReceiptKind.CHARGE } },
+      payment: { receiptType: { kind: ReceiptKind.CHARGE } },
+      receipt: { unitId, fiscalYearId },
     },
-    include: { receipt: { select: { date: true } } },
+    include: { receipt: { select: { date: true } }, payment: { select: { id: true } } },
   });
   lines.sort((a, b) => +a.receipt.date - +b.receipt.date || a.id.localeCompare(b.id));
   for (const line of lines) {
@@ -73,6 +76,7 @@ export async function allocateCredit(tx: Prisma.TransactionClient, unitId: strin
       await tx.receiptLine.create({
         data: {
           receiptId: line.receiptId,
+          paymentId: line.paymentId,
           chargeInvoiceId: invoice.id,
           amount: apply,
           description: line.description || 'تسویه از بستانکاری',
@@ -102,8 +106,7 @@ export async function settleFiscalYearCredits(tx: Prisma.TransactionClient, fisc
     where: {
       fiscalYearId,
       unitId: { not: null },
-      receiptType: { kind: ReceiptKind.CHARGE },
-      lines: { some: { chargeInvoiceId: null } },
+      lines: { some: { chargeInvoiceId: null, payment: { receiptType: { kind: ReceiptKind.CHARGE } } } },
     },
     select: { unitId: true },
     distinct: ['unitId'],

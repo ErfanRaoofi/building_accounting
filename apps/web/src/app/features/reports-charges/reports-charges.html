@@ -2,21 +2,46 @@
   <div class="ui-page-head">
     <div>
       <h1 class="ui-title">گزارش وضعیت شارژ</h1>
-      <p class="ui-muted">وضعیت پرداخت هر واحد در ماه‌های سال مالی</p>
+      <p class="ui-muted">تعداد بدهکار تا ماه انتخاب‌شده حساب می‌شود. ماه خالی ۹۰۰ هزار تومان است و خط تیره یعنی پرداخت ناقص.</p>
     </div>
-    <a class="ui-btn-primary w-full sm:w-auto" routerLink="/print/unit-charges" target="_blank">چاپ</a>
+    <a class="ui-btn-primary w-full sm:w-auto" routerLink="/print/unit-charges" [queryParams]="printQuery()" target="_blank">چاپ</a>
   </div>
-  @if (loading()) {
+  @if (loading() && !months().length) {
     <app-skeleton kind="stats" />
-  } @else if (data(); as d) {
+  } @else {
+    @if (months().length) {
+      <div class="ui-card">
+        <div class="grid gap-3 sm:grid-cols-2">
+          <label class="ui-field">
+            <span class="ui-label">از ماه</span>
+            <select class="ui-input" [value]="fromKey()" (change)="setFrom($any($event.target).value)">
+              @for (m of months(); track monthKey(m)) {
+                <option [value]="monthKey(m)">{{ m.title }}</option>
+              }
+            </select>
+          </label>
+          <label class="ui-field">
+            <span class="ui-label">تا ماه</span>
+            <select class="ui-input" [value]="toKey()" (change)="setTo($any($event.target).value)">
+              @for (m of months(); track monthKey(m)) {
+                <option [value]="monthKey(m)">{{ m.title }}</option>
+              }
+            </select>
+          </label>
+        </div>
+      </div>
+    }
+    @if (loading()) {
+      <app-skeleton kind="stats" />
+    } @else if (data(); as d) {
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <div class="ui-card">
-        <p class="ui-muted">تعداد واحد</p>
-        <p class="mt-1 text-2xl font-bold">{{ d.summary.units }}</p>
+        <p class="ui-muted">بدهکار تا {{ d.range?.to?.title }}</p>
+        <p class="mt-1 text-2xl font-bold text-rose-700">{{ d.summary.withDebt }}</p>
       </div>
       <div class="ui-card">
-        <p class="ui-muted">دارای بدهی</p>
-        <p class="mt-1 text-2xl font-bold text-rose-700">{{ d.summary.withDebt }}</p>
+        <p class="ui-muted">همه واحدها</p>
+        <p class="mt-1 text-2xl font-bold">{{ d.summary.units }}</p>
       </div>
       <div class="ui-card">
         <p class="ui-muted">مانده بدهی</p>
@@ -37,7 +62,7 @@
             <tr>
               <th>واحد</th>
               <th>مالک</th>
-              @for (m of d.months; track m.title) {
+              @for (m of shownMonths(d); track m.title) {
                 <th>{{ m.title }}</th>
               }
               <th>مانده</th>
@@ -46,11 +71,19 @@
           <tbody>
             @for (row of d.rows; track row.unitId) {
               <tr>
-                <td class="font-semibold">{{ row.number }}</td>
+                <td class="font-semibold">
+                  {{ row.number }}
+                  @if (row.occupancy === 'VACANT') {
+                    <span class="mt-0.5 block text-xs font-normal text-rose-700">خالی</span>
+                  }
+                </td>
                 <td>{{ row.ownerName }}</td>
                 @for (cell of row.cells; track cell.title) {
                   <td class="text-center">
                     <app-status-mark [status]="cell.status" />
+                    @if (cell.occupancy === 'VACANT') {
+                      <span class="block text-[10px] leading-4 text-rose-700">خالی</span>
+                    }
                   </td>
                 }
                 <td
@@ -66,6 +99,7 @@
         </table>
       </div>
       <app-pager class="mt-3 block" [(page)]="page" [(size)]="pageSize" [total]="d.total" (changed)="load()" />
+    }
     }
   }
 </section>

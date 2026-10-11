@@ -1,6 +1,6 @@
-import { Component, ElementRef, HostListener, computed, forwardRef, inject, input, signal } from '@angular/core';
+import { Component, ElementRef, HostListener, computed, forwardRef, inject, input, output, signal, viewChild } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
-import { formatJalali, JALALI_MONTHS, jalaliToDate, monthLength, parseJalali, toJalali } from '../core/jalali';
+import { formatJalali, JALALI_MONTHS, jalaliToDate, maskJalaliTyping, monthLength, parseJalali, toJalali } from '../core/jalali';
 
 const WEEKDAYS = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'];
 
@@ -13,6 +13,7 @@ type CalCell = { day: number | null; date: Date | null };
   template: `
     <div class="relative">
       <input
+        #el
         class="ui-input pr-11"
         type="text"
         dir="ltr"
@@ -24,9 +25,9 @@ type CalCell = { day: number | null; date: Date | null };
         [attr.placeholder]="placeholder()"
         [attr.aria-expanded]="open()"
         (input)="onType($any($event.target).value)"
-        (focus)="openCal()"
         (blur)="touched()"
         (keydown.escape)="onInputEsc($event)"
+        (keydown.enter)="onEnter($event)"
       />
       <button
         class="absolute top-1/2 right-1.5 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
@@ -45,9 +46,9 @@ type CalCell = { day: number | null; date: Date | null };
     @if (open()) {
       <div class="mt-2 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm" dir="rtl" role="dialog" aria-label="تقویم شمسی">
         <div class="mb-3 flex items-center justify-between gap-1">
-          <button class="ui-btn-ghost h-9 w-9 px-0" type="button" aria-label="ماه قبل" (click)="shiftMonth(-1)">›</button>
+          <button class="ui-btn-ghost h-9 w-9 px-0" type="button" tabindex="-1" aria-label="ماه قبل" (click)="shiftMonth(-1)">›</button>
           <p class="min-w-0 flex-1 text-center text-sm font-bold text-slate-900">{{ monthTitle() }}</p>
-          <button class="ui-btn-ghost h-9 w-9 px-0" type="button" aria-label="ماه بعد" (click)="shiftMonth(1)">‹</button>
+          <button class="ui-btn-ghost h-9 w-9 px-0" type="button" tabindex="-1" aria-label="ماه بعد" (click)="shiftMonth(1)">‹</button>
         </div>
         <div class="mb-1 grid grid-cols-7 text-center text-xs font-medium text-slate-400">
           @for (d of weekdays; track d) {
@@ -60,6 +61,7 @@ type CalCell = { day: number | null; date: Date | null };
               <button
                 class="h-9 rounded-lg text-sm transition"
                 type="button"
+                tabindex="-1"
                 [class.bg-brand-700]="isSelected(cell.date)"
                 [class.text-white]="isSelected(cell.date)"
                 [class.font-bold]="isSelected(cell.date)"
@@ -77,9 +79,9 @@ type CalCell = { day: number | null; date: Date | null };
           }
         </div>
         <div class="mt-2 flex justify-between gap-2">
-          <button class="ui-btn-ghost h-9 flex-1 px-3 text-sm" type="button" (click)="pick(today)">امروز</button>
+          <button class="ui-btn-ghost h-9 flex-1 px-3 text-sm" type="button" tabindex="-1" (click)="pick(today)">امروز</button>
           @if (nullable() && value()) {
-            <button class="ui-btn-ghost h-9 flex-1 px-3 text-sm" type="button" (click)="clear()">پاک کردن</button>
+            <button class="ui-btn-ghost h-9 flex-1 px-3 text-sm" type="button" tabindex="-1" (click)="clear()">پاک کردن</button>
           }
         </div>
       </div>
@@ -90,6 +92,8 @@ export class JalaliDatepicker implements ControlValueAccessor {
   private host = inject(ElementRef<HTMLElement>);
   placeholder = input('1405/01/15');
   nullable = input(false);
+  enter = output<Event>();
+  el = viewChild<ElementRef<HTMLInputElement>>('el');
   weekdays = WEEKDAYS;
   today = new Date();
   open = signal(false);
@@ -135,17 +139,26 @@ export class JalaliDatepicker implements ControlValueAccessor {
     this.disabled.set(disabled);
   }
 
+  focus() {
+    const input = this.el()?.nativeElement;
+    if (!input) {
+      return;
+    }
+    input.focus();
+    input.select();
+  }
+
+  onEnter(event: Event) {
+    event.preventDefault();
+    this.closeCal();
+    this.enter.emit(event);
+  }
+
   toggle() {
     if (this.disabled()) {
       return;
     }
     this.open.update((v) => !v);
-  }
-
-  openCal() {
-    if (!this.disabled()) {
-      this.open.set(true);
-    }
   }
 
   closeCal() {
@@ -162,9 +175,14 @@ export class JalaliDatepicker implements ControlValueAccessor {
   }
 
   onType(raw: string) {
-    this.display.set(raw);
-    const parsed = parseJalali(raw);
-    if (!parsed && this.nullable() && !raw.trim()) {
+    const masked = maskJalaliTyping(raw);
+    this.display.set(masked);
+    const input = this.el()?.nativeElement;
+    if (input && input.value !== masked) {
+      input.value = masked;
+    }
+    const parsed = parseJalali(masked);
+    if (!parsed && this.nullable() && !masked.trim()) {
       this.value.set(null);
       this.onChange(null);
       return;

@@ -11,6 +11,7 @@ import {
   IsUUID,
   Min,
   MinLength,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 
@@ -81,4 +82,58 @@ export class CreateReceiptDto {
   @ValidateNested({ each: true })
   @Type(() => ReceiptLineDto)
   lines: ReceiptLineDto[];
+}
+
+export class UpdateReceiptDto {
+  @IsOptional()
+  @IsUUID()
+  receiptTypeId?: string;
+
+  @IsOptional()
+  @ValidateIf((_, value) => value != null && value !== '')
+  @IsUUID()
+  unitId?: string | null;
+
+  @IsOptional()
+  @IsDateString()
+  date?: string;
+
+  @IsOptional()
+  @IsEnum(PaymentMethod)
+  paymentMethod?: PaymentMethod;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => ReceiptLineDto)
+  lines: ReceiptLineDto[];
+}
+
+export class UpdateReceiptPaymentDto {
+  @IsOptional()
+  @IsDateString()
+  date?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  amount?: number;
+
+  @IsOptional()
+  @IsEnum(PaymentMethod)
+  paymentMethod?: PaymentMethod;
+
+  @IsOptional()
+  @IsString()
+  description?: string | null;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ReceiptLineDto)
+  lines?: ReceiptLineDto[];
 }

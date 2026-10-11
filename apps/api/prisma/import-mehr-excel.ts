@@ -23,41 +23,41 @@ type ExcelUnit = {
 };
 
 const units: ExcelUnit[] = [
-  { number: '1', bedrooms: 2, vacant: true, charge: 11_000_000, paid: [1, 2, 3] },
-  { number: '2', bedrooms: 2, vacant: true, charge: 11_000_000, paid: [1, 2] },
-  { number: '3', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2, 3] },
-  { number: '4', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2, 3, 4, 5] },
+  { number: '1', bedrooms: 2, vacant: true, charge: 11_000_000, paid: [1, 2, 3, 4, 5, 6, 7] },
+  { number: '2', bedrooms: 2, vacant: true, charge: 11_000_000, paid: [1, 2, 3, 4, 5, 6] },
+  { number: '3', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2, 3, 4, 5] },
+  { number: '4', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2, 3, 4, 5, 6, 7] },
   { number: '5', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2, 3, 4, 5, 6] },
-  { number: '6', bedrooms: 2, vacant: false, charge: 11_000_000, paid: [1, 2, 3, 4] },
-  { number: '7', bedrooms: 2, vacant: true, charge: 11_000_000, paid: [1, 2, 3] },
-  { number: '8', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2, 3, 4] },
+  { number: '6', bedrooms: 2, vacant: false, charge: 11_000_000, paid: [1, 2, 3, 4, 5, 6] },
+  { number: '7', bedrooms: 2, vacant: true, charge: 11_000_000, paid: [1, 2, 3, 4, 5, 6, 7, 8, 9] },
+  { number: '8', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2, 3, 4, 5, 6] },
   { number: '9', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2] },
   { number: '10', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] },
-  { number: '11', bedrooms: 3, vacant: true, charge: 12_000_000, paid: [1, 2, 3, 4, 5, 6] },
-  { number: '12', bedrooms: 2, vacant: false, charge: 11_000_000, paid: [1, 2, 3] },
-  { number: '13', bedrooms: 2, vacant: false, charge: 11_000_000, paid: [1, 2, 3, 4] },
-  { number: '14', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2] },
-  { number: '15', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2, 3, 4, 5, 6] },
-  { number: '16', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2, 3] },
-  { number: '17', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2, 3, 4, 5, 6] },
-  { number: '18', bedrooms: 2, vacant: false, charge: 11_000_000, paid: [] },
-  { number: '19', bedrooms: 2, vacant: false, charge: 11_000_000, paid: [] },
-  { number: '20', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2, 3] },
+  { number: '11', bedrooms: 3, vacant: true, charge: 12_000_000, paid: [1, 2, 3, 4, 5, 6, 7] },
+  { number: '12', bedrooms: 2, vacant: false, charge: 11_000_000, paid: [1, 2, 3, 4] },
+  { number: '13', bedrooms: 2, vacant: false, charge: 11_000_000, paid: [1, 2, 3, 4, 5, 6] },
+  { number: '14', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2, 3, 4, 5, 6] },
+  { number: '15', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2, 3, 4, 5, 6, 7] },
+  { number: '16', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2, 3, 4, 5, 6] },
+  { number: '17', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2, 3, 4, 5, 6, 7, 8] },
+  { number: '18', bedrooms: 2, vacant: false, charge: 11_000_000, paid: [1, 2, 3, 4, 5, 6, 7] },
+  { number: '19', bedrooms: 2, vacant: false, charge: 11_000_000, paid: [3, 4] },
+  { number: '20', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2, 3, 4, 5] },
   { number: '21', bedrooms: 3, vacant: true, charge: 12_000_000, paid: [1, 2, 3, 4, 5, 6] },
   { number: '22', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2, 3, 4, 5, 6] },
-  { number: '23', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2, 3, 4, 5, 6] },
+  { number: '23', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2, 3, 4, 5, 6, 7] },
   { number: '24', bedrooms: 2, vacant: false, charge: 11_000_000, paid: [1, 2] },
-  { number: '25', bedrooms: 2, vacant: false, charge: 11_000_000, paid: [1, 2, 3, 4, 5, 6] },
-  { number: '26', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2, 3] },
+  { number: '25', bedrooms: 2, vacant: false, charge: 11_000_000, paid: [1, 2, 3, 4, 5, 6, 7, 8, 9] },
+  { number: '26', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2, 3, 4, 5, 6] },
   { number: '27', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2, 3, 4, 5, 6] },
-  { number: '28', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2, 3, 4, 5], extra: true },
-  { number: '29', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2] },
-  { number: '30', bedrooms: 2, vacant: false, charge: 11_000_000, paid: [1, 2, 3, 4, 5, 6] },
+  { number: '28', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2, 3, 4, 5, 6, 7], extra: true },
+  { number: '29', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2, 3, 4] },
+  { number: '30', bedrooms: 2, vacant: false, charge: 11_000_000, paid: [1, 2, 3, 4, 5, 6, 7, 8, 9] },
   { number: '31', bedrooms: 2, vacant: false, charge: 11_000_000, paid: [1, 2, 3] },
-  { number: '32', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2, 3, 4] },
-  { number: '33', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2, 3, 4] },
-  { number: '34', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2] },
-  { number: '35', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2, 3, 4, 5, 6] },
+  { number: '32', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2, 3, 4, 5, 6] },
+  { number: '33', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2, 3, 4, 5, 6], extra: true },
+  { number: '34', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2, 3, 4, 5] },
+  { number: '35', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2, 3, 4, 5, 6, 7] },
   { number: '36', bedrooms: 3, vacant: false, charge: 12_000_000, paid: [1, 2, 3, 4] },
 ];
 
@@ -66,30 +66,16 @@ function jalaliDate(year: number, month: number, day: number) {
   return new Date(Date.UTC(g.gy, g.gm - 1, g.gd));
 }
 
-async function wipeAll() {
-  await prisma.receipt.deleteMany();
-  await prisma.payment.deleteMany();
-  await prisma.chargeInvoice.deleteMany();
-  await prisma.unit.deleteMany();
-  await prisma.expenseCategory.deleteMany({ where: { parentId: { not: null } } });
-  await prisma.expenseCategory.deleteMany();
-  await prisma.receiptType.deleteMany();
-  await prisma.fiscalYear.deleteMany();
-  await prisma.chargeTariff.deleteMany();
-  await prisma.signupRequest.deleteMany();
-  await prisma.unitResident.deleteMany();
-  await prisma.buildingAccess.deleteMany();
-  await prisma.building.deleteMany();
-  await prisma.user.deleteMany({ where: { email: { not: 'admin@mehr.local' } } });
-}
-
 async function ensureCategory(buildingId: string, name: string, parentId?: string) {
+  const existing = await prisma.expenseCategory.findFirst({ where: { buildingId, name, parentId: parentId ?? null } });
+  if (existing) {
+    return existing;
+  }
   return prisma.expenseCategory.create({ data: { buildingId, name, parentId } });
 }
 
 async function main() {
-  console.log(`Wiping previous data, then importing Mehr Excel for ${YEAR} (issued through month ${currentMonth})`);
-  await wipeAll();
+  console.log(`Syncing Mehr Excel for ${YEAR} (issued through month ${currentMonth}); users and expense payments stay`);
 
   const passwordHash = await hash('Admin123!', 10);
   const admin = await prisma.user.upsert({
@@ -98,22 +84,38 @@ async function main() {
     create: { email: 'admin@mehr.local', passwordHash, name: 'مدیر سیستم', isSuperAdmin: true },
   });
 
-  const building = await prisma.building.create({
-    data: { id: BUILDING_ID, name: 'برج مهر', address: 'تهران' },
-  });
-  await prisma.buildingAccess.create({
-    data: { userId: admin.id, buildingId: building.id, roles: ['MANAGER'] },
+  const existingBuilding =
+    (await prisma.building.findUnique({ where: { id: BUILDING_ID } })) ||
+    (await prisma.building.findFirst({ where: { name: 'برج مهر' } }));
+  const building = existingBuilding
+    ? await prisma.building.update({
+        where: { id: existingBuilding.id },
+        data: { name: 'برج مهر', address: existingBuilding.address || 'تهران', isActive: true },
+      })
+    : await prisma.building.create({
+        data: { id: BUILDING_ID, name: 'برج مهر', address: 'تهران' },
+      });
+  await prisma.buildingAccess.upsert({
+    where: { userId_buildingId: { userId: admin.id, buildingId: building.id } },
+    update: { roles: ['MANAGER'] },
+    create: { userId: admin.id, buildingId: building.id, roles: ['MANAGER'] },
   });
 
-  const twoBed = await prisma.chargeTariff.create({
-    data: { buildingId: building.id, name: 'دو خوابه', monthlyAmount: 11_000_000 },
+  const twoBed = await prisma.chargeTariff.upsert({
+    where: { buildingId_name: { buildingId: building.id, name: 'دو خوابه' } },
+    update: { monthlyAmount: 11_000_000, isActive: true },
+    create: { buildingId: building.id, name: 'دو خوابه', monthlyAmount: 11_000_000 },
   });
-  const threeBed = await prisma.chargeTariff.create({
-    data: { buildingId: building.id, name: 'سه خوابه', monthlyAmount: 12_000_000 },
+  const threeBed = await prisma.chargeTariff.upsert({
+    where: { buildingId_name: { buildingId: building.id, name: 'سه خوابه' } },
+    update: { monthlyAmount: 12_000_000, isActive: true },
+    create: { buildingId: building.id, name: 'سه خوابه', monthlyAmount: 12_000_000 },
   });
 
-  const fiscal = await prisma.fiscalYear.create({
-    data: {
+  const fiscal = await prisma.fiscalYear.upsert({
+    where: { buildingId_title: { buildingId: building.id, title: String(YEAR) } },
+    update: { status: 'OPEN' },
+    create: {
       buildingId: building.id,
       title: String(YEAR),
       startDate: jalaliDate(YEAR, 1, 1),
@@ -122,14 +124,20 @@ async function main() {
     },
   });
 
-  const chargeType = await prisma.receiptType.create({
-    data: { buildingId: building.id, name: 'شارژ', kind: ReceiptKind.CHARGE, isSystem: true },
+  const chargeType = await prisma.receiptType.upsert({
+    where: { buildingId_name: { buildingId: building.id, name: 'شارژ' } },
+    update: { kind: ReceiptKind.CHARGE, isSystem: true },
+    create: { buildingId: building.id, name: 'شارژ', kind: ReceiptKind.CHARGE, isSystem: true },
   });
-  await prisma.receiptType.create({
-    data: { buildingId: building.id, name: 'ورودی', kind: ReceiptKind.ENTRANCE, isSystem: true },
+  await prisma.receiptType.upsert({
+    where: { buildingId_name: { buildingId: building.id, name: 'ورودی' } },
+    update: { kind: ReceiptKind.ENTRANCE, isSystem: true },
+    create: { buildingId: building.id, name: 'ورودی', kind: ReceiptKind.ENTRANCE, isSystem: true },
   });
-  const extraType = await prisma.receiptType.create({
-    data: { buildingId: building.id, name: 'شارژ متفرقه', kind: ReceiptKind.OTHER, isSystem: false },
+  const extraType = await prisma.receiptType.upsert({
+    where: { buildingId_name: { buildingId: building.id, name: 'شارژ متفرقه' } },
+    update: { kind: ReceiptKind.OTHER, isSystem: false },
+    create: { buildingId: building.id, name: 'شارژ متفرقه', kind: ReceiptKind.OTHER, isSystem: false },
   });
 
   const bills = await ensureCategory(building.id, 'قبوض');
@@ -140,17 +148,31 @@ async function main() {
     await ensureCategory(building.id, name);
   }
 
+  const removedReceipts = await prisma.receipt.deleteMany({
+    where: {
+      fiscalYearId: fiscal.id,
+      OR: [
+        { receiptTypeId: chargeType.id },
+        { receiptTypeId: extraType.id },
+        { lines: { some: { chargeInvoice: { fiscalYearId: fiscal.id } } } },
+      ],
+    },
+  });
+  const removedInvoices = await prisma.chargeInvoice.deleteMany({ where: { fiscalYearId: fiscal.id } });
+
   const createdUnits = [];
   for (const row of units) {
-    const unit = await prisma.unit.create({
-      data: {
-        buildingId: building.id,
-        number: row.number,
-        bedrooms: row.bedrooms,
-        occupancy: row.vacant ? OccupancyStatus.VACANT : OccupancyStatus.OCCUPIED,
-        tariffId: row.bedrooms === 2 ? twoBed.id : threeBed.id,
-        customMonthlyCharge: row.charge,
-      },
+    const data = {
+      bedrooms: row.bedrooms,
+      occupancy: row.vacant ? OccupancyStatus.VACANT : OccupancyStatus.OCCUPIED,
+      tariffId: row.bedrooms === 2 ? twoBed.id : threeBed.id,
+      customMonthlyCharge: row.charge,
+      isActive: true,
+    };
+    const unit = await prisma.unit.upsert({
+      where: { buildingId_number: { buildingId: building.id, number: row.number } },
+      update: data,
+      create: { buildingId: building.id, number: row.number, ...data },
     });
     createdUnits.push({ unit, row });
   }
@@ -160,12 +182,14 @@ async function main() {
     return Array.from({ length: lastIssued }, (_, i) => {
       const month = i + 1;
       const paid = row.paid.includes(month);
+      const vacantMonth = row.vacant && !paid;
       return {
         unitId: unit.id,
         fiscalYearId: fiscal.id,
         jalaliYear: YEAR,
         jalaliMonth: month,
-        amount: row.charge,
+        occupancy: vacantMonth ? OccupancyStatus.VACANT : OccupancyStatus.OCCUPIED,
+        amount: vacantMonth ? 9_000_000 : row.charge,
         paidAmount: paid ? row.charge : 0,
         status: paid ? ChargeInvoiceStatus.PAID : ChargeInvoiceStatus.UNPAID,
       };
@@ -174,7 +198,14 @@ async function main() {
   await prisma.chargeInvoice.createMany({ data: invoiceRows });
 
   const invoices = await prisma.chargeInvoice.findMany({ where: { fiscalYearId: fiscal.id } });
-  let receiptSeq = 0;
+  const keptNumbers = await prisma.receipt.findMany({
+    where: { buildingId: building.id, fiscalYearId: fiscal.id },
+    select: { number: true },
+  });
+  let receiptSeq = keptNumbers.reduce((max, row) => {
+    const match = row.number.match(/-(\d+)$/);
+    return match ? Math.max(max, Number(match[1])) : max;
+  }, 0);
   let paidMonthCount = 0;
   let unpaidMonthCount = 0;
 
@@ -234,6 +265,7 @@ async function main() {
     invoices.some((inv) => inv.unitId === unit.id && inv.status === ChargeInvoiceStatus.UNPAID),
   ).length;
   console.log(`Building: ${building.name}`);
+  console.log(`Replaced receipts: ${removedReceipts.count}, invoices: ${removedInvoices.count}`);
   console.log(`Units: ${createdUnits.length} (vacant: ${vacant})`);
   console.log(`Invoices: ${invoiceRows.length} (paid months: ${paidMonthCount}, unpaid months: ${unpaidMonthCount})`);
   console.log(`Receipts: ${receiptSeq}`);

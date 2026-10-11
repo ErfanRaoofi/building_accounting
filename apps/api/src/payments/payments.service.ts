@@ -7,6 +7,23 @@ import { money } from '../common/jalali';
 import { paginateQuery, type Pagination } from '../common/pagination';
 import { STAFF_ROLES } from '../common/roles';
 
+function optionalText(value: string | undefined) {
+  if (value === undefined) {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  return trimmed || null;
+}
+
+function presentPayment<T extends { amount: unknown; depositAmount: unknown; balance: unknown }>(row: T) {
+  return {
+    ...row,
+    amount: money(row.amount),
+    depositAmount: money(row.depositAmount),
+    balance: row.balance == null ? null : money(row.balance),
+  };
+}
+
 @Injectable()
 export class PaymentsService {
   constructor(
@@ -35,7 +52,7 @@ export class PaymentsService {
           orderBy: { date: 'desc' },
         }),
     );
-    return { ...result, items: result.items.map((p) => ({ ...p, amount: money(p.amount) })) };
+    return { ...result, items: result.items.map((p) => presentPayment(p)) };
   }
 
   async create(user: AuthUser, dto: CreatePaymentDto) {
@@ -59,6 +76,13 @@ export class PaymentsService {
         number,
         date: new Date(dto.date),
         amount: dto.amount,
+        depositAmount: dto.depositAmount ?? 0,
+        balance: dto.balance ?? null,
+        transactionTime: optionalText(dto.transactionTime),
+        operation: optionalText(dto.operation),
+        documentNumber: optionalText(dto.documentNumber),
+        depositReference: optionalText(dto.depositReference),
+        trackingNumber: optionalText(dto.trackingNumber),
         payee: dto.payee,
         paymentMethod: dto.paymentMethod,
         description: dto.description,
@@ -66,7 +90,7 @@ export class PaymentsService {
       },
       include: { category: { include: { parent: true } } },
     });
-    return { ...row, amount: money(row.amount) };
+    return presentPayment(row);
   }
 
   async update(user: AuthUser, id: string, dto: UpdatePaymentDto) {
@@ -87,12 +111,29 @@ export class PaymentsService {
         categoryId: dto.categoryId,
         date: dto.date ? new Date(dto.date) : undefined,
         amount: dto.amount,
+        depositAmount: dto.depositAmount,
+        balance: dto.balance,
+        transactionTime: optionalText(dto.transactionTime),
+        operation: optionalText(dto.operation),
+        documentNumber: optionalText(dto.documentNumber),
+        depositReference: optionalText(dto.depositReference),
+        trackingNumber: optionalText(dto.trackingNumber),
         payee: dto.payee,
         paymentMethod: dto.paymentMethod,
         description: dto.description,
       },
       include: { category: { include: { parent: true } } },
     });
-    return { ...row, amount: money(row.amount) };
+    return presentPayment(row);
+  }
+
+  async remove(user: AuthUser, id: string) {
+    const payment = await this.prisma.payment.findUnique({ where: { id } });
+    if (!payment) {
+      throw new NotFoundException('پرداخت یافت نشد');
+    }
+    await this.access.assertOpenFiscalYear(user, payment.fiscalYearId, STAFF_ROLES);
+    await this.prisma.payment.delete({ where: { id } });
+    return { ok: true };
   }
 }

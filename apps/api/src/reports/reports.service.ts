@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AccessService } from '../common/access.service';
 import { AuthUser } from '../common/decorators/current-user.decorator';
-import { JALALI_MONTHS, money, monthsBetween } from '../common/jalali';
+import { JALALI_MONTHS, money, monthsBetween, toJalali } from '../common/jalali';
 import { sortByUnitNumber } from '../common/unit-number';
 import { pageRows, paginateQuery, type Pagination } from '../common/pagination';
 import { creditsByUnit, settleFiscalYearCredits } from '../charges/charge-credit';
@@ -15,7 +15,7 @@ export class ReportsService {
     private access: AccessService,
   ) {}
 
-  async unitCharges(user: AuthUser, fiscalYearId: string, pagination: Pagination) {
+  async unitCharges(user: AuthUser, fiscalYearId: string, pagination: Pagination, query: Record<string, string> = {}) {
     const fy = await this.prisma.fiscalYear.findUnique({
       where: { id: fiscalYearId },
       include: { building: true },
@@ -26,6 +26,7 @@ export class ReportsService {
     await this.access.assertRoles(user, fy.buildingId, REPORT_ROLES);
     await this.prisma.$transaction((tx) => settleFiscalYearCredits(tx, fiscalYearId));
     const months = monthsBetween(fy.startDate, fy.endDate);
+    const range = clipMonthRange(months, query);
     const units = sortByUnitNumber(
       await this.prisma.unit.findMany({
         where: { buildingId: fy.buildingId, isActive: true },
@@ -39,18 +40,19 @@ export class ReportsService {
       creditsByUnit(this.prisma, fiscalYearId),
     ]);
     const allRows = units.map((unit) => {
-      const cells = months.map((m) => {
+      const cells = range.months.map((m) => {
         const inv = invoices.find(
           (i) => i.unitId === unit.id && i.jalaliYear === m.year && i.jalaliMonth === m.month,
         );
         if (!inv) {
-          return { year: m.year, month: m.month, title: m.title, status: 'NONE', remaining: 0, amount: 0 };
+          return { year: m.year, month: m.month, title: m.title, status: 'NONE', occupancy: null, remaining: 0, amount: 0 };
         }
         return {
           year: m.year,
           month: m.month,
           title: m.title,
           status: inv.status,
+          occupancy: inv.occupancy,
           amount: money(inv.amount),
           paidAmount: money(inv.paidAmount),
           remaining: money(inv.amount) - money(inv.paidAmount),
@@ -58,9 +60,10 @@ export class ReportsService {
       });
       const unpaidCount = cells.filter((c) => c.status === 'UNPAID' || c.status === 'PARTIAL').length;
       const paidCount = cells.filter((c) => c.status === 'PAID').length;
-      const remaining = cells.reduce((s, c) => s + (c.remaining || 0), 0);
+      const invoiceRemaining = cells.reduce((s, c) => s + (c.remaining || 0), 0);
       const credit = creditMap.get(unit.id) || 0;
-      const net = remaining - credit;
+      const wholeYear = range.months.length === months.length;
+      const net = wholeYear ? invoiceRemaining - credit : invoiceRemaining;
       return {
         unitId: unit.id,
         number: unit.number,
@@ -70,7 +73,7 @@ export class ReportsService {
         unpaidCount,
         paidCount,
         remaining: net,
-        invoiceRemaining: remaining,
+        invoiceRemaining,
         credit,
         net,
         cells,
@@ -81,6 +84,7 @@ export class ReportsService {
       building: fy.building,
       fiscalYear: fy,
       months,
+      range,
       rows: paged.items,
       total: paged.total,
       page: paged.page,
@@ -88,7 +92,7 @@ export class ReportsService {
       summary: {
         units: allRows.length,
         fullyPaid: allRows.filter((r) => r.unpaidCount === 0 && r.paidCount > 0).length,
-        withDebt: allRows.filter((r) => r.net > 0).length,
+        withDebt: allRows.filter((r) => r.invoiceRemaining > 0).length,
         remaining: allRows.reduce((s, r) => s + Math.max(r.net, 0), 0),
         credit: allRows.reduce((s, r) => s + r.credit, 0),
       },
@@ -145,6 +149,8 @@ export class ReportsService {
       items: paged.items.map((p) => ({
         ...p,
         amount: money(p.amount),
+        depositAmount: money(p.depositAmount),
+        balance: p.balance == null ? null : money(p.balance),
         categoryPath: p.category.parent ? `${p.category.parent.name} / ${p.category.name}` : p.category.name,
       })),
       total: money(sum._sum.amount || 0),
@@ -280,8 +286,11 @@ function clipMonthRange(months: JalaliMonth[], query: Record<string, string>) {
   }
   const parsedFrom = parseMonthParam(query, 'from');
   const parsedTo = parseMonthParam(query, 'to');
+
+  const today = toJalali(new Date());
+  const current = clipToAvailable(months, today.jy, today.jm, last);
   let from = parsedFrom ? clipToAvailable(months, parsedFrom.year, parsedFrom.month, first) : first;
-  let to = parsedTo ? clipToAvailable(months, parsedTo.year, parsedTo.month, last) : last;
+  let to = parsedTo ? clipToAvailable(months, parsedTo.year, parsedTo.month, current) : current;
   if (monthIndex(from.year, from.month) > monthIndex(to.year, to.month)) {
     [from, to] = [to, from];
   }
@@ -290,8 +299,8 @@ function clipMonthRange(months: JalaliMonth[], query: Record<string, string>) {
   return {
     from,
     to,
-    months: months.filter((m) => {
-      const index = monthIndex(m.year, m.month);
+    months: months.filter((month) => {
+      const index = monthIndex(month.year, month.month);
       return index >= fromIndex && index <= toIndex;
     }),
   };

@@ -350,6 +350,10 @@
     @apply w-full min-w-[640px] border-collapse text-right text-sm;
   }
 
+  .ui-table.ui-table-fit {
+    min-width: 0;
+  }
+
   .ui-table th {
     @apply sticky top-0 bg-slate-50 px-4 py-3 text-xs font-semibold text-slate-500;
   }
@@ -678,3 +682,27 @@
     transform: none;
   }
 }
+
+.money-toman-hint {
+  position: fixed;
+  z-index: 4000;
+  direction: rtl;
+  text-align: right;
+  background: var(--color-brand-700);
+  color: #fff;
+  font-family: Vazirmatn, Tahoma, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 8px;
+  box-shadow: 0 8px 22px rgb(15 118 110 / 0.28);
+  pointer-events: none;
+  white-space: pre-line;
+  max-width: min(22rem, calc(100vw - 16px));
+  line-height: 1.5;
+}
+
+.money-toman-hint[hidden] {
+  display: none !important;
+}
+

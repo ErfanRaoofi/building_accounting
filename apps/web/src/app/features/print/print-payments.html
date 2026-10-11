@@ -15,21 +15,25 @@
     <table class="w-full border-collapse text-right text-sm">
       <thead>
         <tr>
-          <th class="border border-slate-200 bg-slate-50 px-2 py-2">شماره</th>
           <th class="border border-slate-200 bg-slate-50 px-2 py-2">تاریخ</th>
+          <th class="border border-slate-200 bg-slate-50 px-2 py-2">شرح</th>
           <th class="border border-slate-200 bg-slate-50 px-2 py-2">سرفصل</th>
-          <th class="border border-slate-200 bg-slate-50 px-2 py-2">ذینفع</th>
-          <th class="border border-slate-200 bg-slate-50 px-2 py-2">مبلغ</th>
+          <th class="border border-slate-200 bg-slate-50 px-2 py-2">برداشت</th>
+          <th class="border border-slate-200 bg-slate-50 px-2 py-2">مانده</th>
+          <th class="border border-slate-200 bg-slate-50 px-2 py-2">پیگیری</th>
+          <th class="border border-slate-200 bg-slate-50 px-2 py-2">سند</th>
         </tr>
       </thead>
       <tbody>
         @for (row of d.items; track row.id) {
           <tr>
-            <td class="border border-slate-200 px-2 py-2">{{ row.number }}</td>
-            <td class="border border-slate-200 px-2 py-2">{{ formatJalali(row.date) }}</td>
+            <td class="border border-slate-200 px-2 py-2">{{ formatJalali(row.date) }}@if (row.transactionTime) { <span class="block" dir="ltr">{{ row.transactionTime }}</span> }</td>
+            <td class="border border-slate-200 px-2 py-2">{{ row.description || row.payee }}</td>
             <td class="border border-slate-200 px-2 py-2">{{ row.categoryPath }}</td>
-            <td class="border border-slate-200 px-2 py-2">{{ row.payee }}</td>
             <td class="border border-slate-200 px-2 py-2">{{ formatMoney(row.amount) }}</td>
+            <td class="border border-slate-200 px-2 py-2">{{ row.balance == null ? '' : formatMoney(row.balance) }}</td>
+            <td class="border border-slate-200 px-2 py-2" dir="ltr">{{ row.trackingNumber }}</td>
+            <td class="border border-slate-200 px-2 py-2" dir="ltr">{{ row.documentNumber }}</td>
           </tr>
         }
       </tbody>

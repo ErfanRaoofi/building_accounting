@@ -1,7 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { tap } from 'rxjs';
+import { Observable, finalize, shareReplay, tap, throwError } from 'rxjs';
 import { Building, BuildingRole, ContextService } from './context.service';
 
 export type AuthUser = {
@@ -11,7 +11,15 @@ export type AuthUser = {
   isSuperAdmin: boolean;
 };
 
+type AuthSession = {
+  accessToken: string;
+  refreshToken: string;
+  user: AuthUser;
+  buildings: Building[];
+};
+
 const TOKEN_KEY = 'mehr.token';
+const REFRESH_KEY = 'mehr.refresh';
 const USER_KEY = 'mehr.user';
 
 @Injectable({ providedIn: 'root' })
@@ -19,9 +27,11 @@ export class AuthService {
   private http = inject(HttpClient);
   private router = inject(Router);
   private ctx = inject(ContextService);
+  private refreshInFlight: Observable<AuthSession> | null = null;
   token = signal(localStorage.getItem(TOKEN_KEY));
+  refreshToken = signal(localStorage.getItem(REFRESH_KEY));
   user = signal<AuthUser | null>(readUser());
-  isLoggedIn = computed(() => !!this.token());
+  isLoggedIn = computed(() => !!this.token() || !!this.refreshToken());
   buildingRoles = computed(() => this.ctx.building()?.roles || []);
   isAdmin = computed(() => !!this.user()?.isSuperAdmin);
   isStaff = computed(() => this.isAdmin() || this.hasRole('MANAGER', 'ACCOUNTANT'));
@@ -32,27 +42,42 @@ export class AuthService {
   canSeeSettings = computed(() => this.isStaff());
 
   login(email: string, password: string) {
-    return this.http
-      .post<{ accessToken: string; user: AuthUser; buildings: Building[] }>('/api/auth/login', { email, password })
-      .pipe(
-        tap((res) => {
-          localStorage.setItem(TOKEN_KEY, res.accessToken);
-          localStorage.setItem(USER_KEY, JSON.stringify(res.user));
-          this.token.set(res.accessToken);
-          this.user.set(res.user);
-          this.ctx.invalidate();
-          this.ctx.clearBuilding();
-          this.ctx.setBuildings(res.buildings || []);
-        }),
-      );
+    return this.http.post<AuthSession>('/api/auth/login', { email, password }).pipe(
+      tap((res) => {
+        this.persistSession(res);
+        this.ctx.invalidate();
+        this.ctx.clearBuilding();
+        this.ctx.setBuildings(res.buildings || []);
+      }),
+    );
+  }
+
+  refreshSession() {
+    const refreshToken = this.refreshToken() || localStorage.getItem(REFRESH_KEY);
+    if (!refreshToken) {
+      return throwError(() => new Error('no-refresh-token'));
+    }
+    if (!this.refreshInFlight) {
+      this.refreshInFlight = this.http
+        .post<AuthSession>('/api/auth/refresh', { refreshToken })
+        .pipe(
+          tap((res) => this.persistSession(res)),
+          finalize(() => {
+            this.refreshInFlight = null;
+          }),
+          shareReplay({ bufferSize: 1, refCount: false }),
+        );
+    }
+    return this.refreshInFlight;
   }
 
   logout() {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
-    this.token.set(null);
-    this.user.set(null);
+    const refreshToken = this.refreshToken() || localStorage.getItem(REFRESH_KEY);
+    this.clearSession();
     this.ctx.reset();
+    if (refreshToken) {
+      this.http.post('/api/auth/logout', { refreshToken }).subscribe({ error: () => undefined });
+    }
     this.router.navigateByUrl('/login');
   }
 
@@ -72,6 +97,24 @@ export class AuthService {
       return '/units';
     }
     return '/units';
+  }
+
+  private persistSession(res: AuthSession) {
+    localStorage.setItem(TOKEN_KEY, res.accessToken);
+    localStorage.setItem(REFRESH_KEY, res.refreshToken);
+    localStorage.setItem(USER_KEY, JSON.stringify(res.user));
+    this.token.set(res.accessToken);
+    this.refreshToken.set(res.refreshToken);
+    this.user.set(res.user);
+  }
+
+  private clearSession() {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_KEY);
+    localStorage.removeItem(USER_KEY);
+    this.token.set(null);
+    this.refreshToken.set(null);
+    this.user.set(null);
   }
 }
 

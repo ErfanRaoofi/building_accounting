@@ -39,7 +39,9 @@
             @if (auth.isStaff()) {
               <button class="ui-btn-ghost h-9 px-3" type="button" (click)="openEdit(row)">ویرایش</button>
             }
-            <a class="ui-btn-ghost h-9 px-3" [routerLink]="['/units', row.id, 'ledger']">دفتر حساب</a>
+            <a class="ui-btn-ghost h-9 px-3" [routerLink]="['/units', row.id, 'ledger']">
+              {{ auth.isStaff() ? 'دفتر حساب' : 'حساب من' }}
+            </a>
           </div>
         </article>
       }
@@ -73,7 +75,11 @@
                   @if (auth.isStaff()) {
                     <app-icon-action icon="edit" label="ویرایش" (click)="openEdit(row)" />
                   }
-                  <app-icon-action icon="ledger" label="دفتر حساب" [link]="['/units', row.id, 'ledger']" />
+                  <app-icon-action
+                    icon="ledger"
+                    [label]="auth.isStaff() ? 'دفتر حساب' : 'حساب من'"
+                    [link]="['/units', row.id, 'ledger']"
+                  />
                 </div>
               </td>
             </tr>
@@ -111,6 +117,7 @@
             <option value="OCCUPIED">ساکن</option>
             <option value="VACANT">خالی</option>
           </select>
+          <span class="ui-muted">از ماه جاری، ماه‌های پرداخت‌نشدهٔ واحد خالی ۹۰۰ هزار تومان می‌شود. ماهی که کامل پرداخت شده همان می‌ماند. برای یک ماه خاص، از دفتر واحد همان ماه را عوض کنید.</span>
         </label>
         <label class="ui-field">
           <span class="ui-label">مالک</span>
@@ -134,8 +141,9 @@
           </select>
         </label>
         <label class="ui-field">
-          <span class="ui-label">مبلغ سفارشی</span>
+          <span class="ui-label">شارژ ماه ساکن (ریال)</span>
           <app-money-input formControlName="customMonthlyCharge" [nullable]="true" />
+          <span class="ui-muted">این مبلغ ماه‌های پر است. ماه خالی جداگانه ۹۰۰ هزار تومان حساب می‌شود و اینجا نوشته نمی‌شود.</span>
         </label>
       </div>
       <div class="ui-form-actions">

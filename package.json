@@ -5,9 +5,9 @@
   "scripts": {
     "serve:web": "nx serve web --port=4200 --host=127.0.0.1",
     "serve:api": "nx serve api",
-    "db:up": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/pg-local.ps1 start",
-    "db:down": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/pg-local.ps1 stop",
-    "db:status": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/pg-local.ps1 status",
+    "db:up": "scripts\\pg-local.cmd start",
+    "db:down": "scripts\\pg-local.cmd stop",
+    "db:status": "scripts\\pg-local.cmd status",
     "db:import-mehr": "tsx apps/api/prisma/import-mehr-excel.ts",
     "db:migrate": "prisma migrate dev --schema apps/api/prisma/schema.prisma",
     "db:seed": "prisma db seed",

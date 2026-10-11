@@ -48,10 +48,14 @@ export function parseDatabaseUrl(raw = process.env.DIRECT_URL || process.env.DAT
 }
 
 export function runPg(bin: string, args: string[], password: string) {
+  const useShell =
+    process.platform === 'win32' &&
+    (/\.cmd$/i.test(bin) || bin === 'npx' || bin.toLowerCase().endsWith('npx.cmd'));
   return new Promise<{ code: number; stderr: string; stdout: string }>((resolve, reject) => {
     const child = spawn(bin, args, {
       env: { ...process.env, PGPASSWORD: password },
       windowsHide: true,
+      shell: useShell,
     });
     let stderr = '';
     let stdout = '';
@@ -66,28 +70,58 @@ export function runPg(bin: string, args: string[], password: string) {
   });
 }
 
+/** Docker: ./prisma ; local nx serve from repo root: apps/api/prisma */
+export function prismaSchemaPath() {
+  const candidates = [
+    join(process.cwd(), 'prisma', 'schema.prisma'),
+    join(process.cwd(), 'apps', 'api', 'prisma', 'schema.prisma'),
+  ];
+  return candidates.find((p) => existsSync(p)) || candidates[0];
+}
+
+export function fixRolesSqlPath() {
+  const candidates = [
+    join(process.cwd(), 'prisma', 'fix-failed-roles-migration.sql'),
+    join(process.cwd(), 'apps', 'api', 'prisma', 'fix-failed-roles-migration.sql'),
+  ];
+  return candidates.find((p) => existsSync(p)) || null;
+}
+
+function prismaCli(): { bin: string; argsPrefix: string[] } {
+  const localCmd = join(
+    process.cwd(),
+    'node_modules',
+    '.bin',
+    process.platform === 'win32' ? 'prisma.cmd' : 'prisma',
+  );
+  if (existsSync(localCmd)) {
+    return { bin: localCmd, argsPrefix: [] };
+  }
+  return {
+    bin: process.platform === 'win32' ? 'npx.cmd' : 'npx',
+    argsPrefix: ['prisma'],
+  };
+}
+
+function runPrisma(args: string[]) {
+  const cli = prismaCli();
+  return runPg(cli.bin, [...cli.argsPrefix, ...args], '');
+}
+
 export function runMigrateDeploy() {
-  return runPg('npx', ['prisma', 'migrate', 'deploy', '--schema', './prisma/schema.prisma'], '');
+  return runPrisma(['migrate', 'deploy', '--schema', prismaSchemaPath()]);
 }
 
 export function runMigrateResolveApplied(name: string) {
-  return runPg(
-    'npx',
-    ['prisma', 'migrate', 'resolve', '--applied', name, '--schema', './prisma/schema.prisma'],
-    '',
-  );
+  return runPrisma(['migrate', 'resolve', '--applied', name, '--schema', prismaSchemaPath()]);
 }
 
 export function runFixRolesMigrationSql() {
-  const file = join(process.cwd(), 'prisma', 'fix-failed-roles-migration.sql');
-  if (!existsSync(file)) {
+  const file = fixRolesSqlPath();
+  if (!file) {
     return Promise.resolve({ code: 0, stderr: '', stdout: 'skip' });
   }
-  return runPg(
-    'npx',
-    ['prisma', 'db', 'execute', '--schema', './prisma/schema.prisma', '--file', file],
-    '',
-  );
+  return runPrisma(['db', 'execute', '--schema', prismaSchemaPath(), '--file', file]);
 }
 
 /** Heal schema after restoring an older / partial dump so the app can boot. */

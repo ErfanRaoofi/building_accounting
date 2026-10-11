@@ -58,12 +58,18 @@ export class PrintDebtors {
       return '';
     }
     if (from.year === to.year && from.month === to.month) {
-      return from.title;
+      return to.title;
     }
     return `از ${from.title} تا ${to.title}`;
   }
 
-  monthsLabel(row: { unpaidMonths?: { title: string }[] }) {
-    return (row.unpaidMonths || []).map((m) => m.title).join('، ');
+  monthsLabel(row: { unpaidMonths?: { title: string; remaining?: number; status?: string }[] }) {
+    return (row.unpaidMonths || [])
+      .map((month) => {
+        const amount = month.remaining == null ? '' : ` ${formatMoney(month.remaining)}`;
+        const partial = month.status === 'PARTIAL' ? ' ناقص' : '';
+        return `${month.title}${partial}${amount}`;
+      })
+      .join('، ');
   }
 }

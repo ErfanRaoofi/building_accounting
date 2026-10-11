@@ -9,7 +9,7 @@
       }
       <div>
         <h1 class="text-2xl font-bold">گزارش وضعیت شارژ واحدها</h1>
-        <p class="mt-2 text-sm text-slate-500">{{ d.building?.name }} — سال مالی {{ d.fiscalYear?.title }} — تاریخ چاپ {{ today }}</p>
+        <p class="mt-2 text-sm text-slate-500">{{ d.building?.name }} — سال مالی {{ d.fiscalYear?.title }} — {{ rangeLabel(d) }} — تاریخ چاپ {{ today }}</p>
       </div>
     </header>
     <table class="w-full border-collapse text-right text-sm">
@@ -17,7 +17,7 @@
         <tr>
           <th class="border border-slate-200 bg-slate-50 px-2 py-2">واحد</th>
           <th class="border border-slate-200 bg-slate-50 px-2 py-2">مالک</th>
-          @for (m of d.months; track m.title) {
+          @for (m of shownMonths(d); track m.title) {
             <th class="border border-slate-200 bg-slate-50 px-2 py-2">{{ m.title }}</th>
           }
           <th class="border border-slate-200 bg-slate-50 px-2 py-2">مانده</th>
@@ -26,11 +26,19 @@
       <tbody>
         @for (row of d.rows; track row.unitId) {
           <tr>
-            <td class="border border-slate-200 px-2 py-2">{{ row.number }}</td>
+            <td class="border border-slate-200 px-2 py-2">
+              {{ row.number }}
+              @if (row.occupancy === 'VACANT') {
+                <span class="block text-xs text-rose-700">خالی</span>
+              }
+            </td>
             <td class="border border-slate-200 px-2 py-2">{{ row.ownerName }}</td>
             @for (cell of row.cells; track cell.title) {
               <td class="border border-slate-200 px-2 py-2 text-center">
                 <app-status-mark [status]="cell.status" />
+                @if (cell.occupancy === 'VACANT') {
+                  <span class="block text-[10px] text-rose-700">خالی</span>
+                }
               </td>
             }
             <td
@@ -44,6 +52,6 @@
         }
       </tbody>
     </table>
-    <p class="mt-4 font-semibold">مانده بدهی: {{ formatMoney(d.summary.remaining) }}@if (d.summary.credit) { — بستانکاری: {{ formatMoney(d.summary.credit) }} }</p>
+    <p class="mt-4 font-semibold">تعداد واحد بدهکار تا {{ d.range?.to?.title }}: {{ d.summary.withDebt }} — مانده بدهی: {{ formatMoney(d.summary.remaining) }}@if (d.summary.credit) { — بستانکاری: {{ formatMoney(d.summary.credit) }} }</p>
   }
 </div>

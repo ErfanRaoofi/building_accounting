@@ -33,31 +33,6 @@ export function formatJalali(date: string | Date | null | undefined) {
   return `${j.jy}/${String(j.jm).padStart(2, '0')}/${String(j.jd).padStart(2, '0')}`;
 }
 
-export function parseJalali(value: string): Date | null {
-  const match = value.trim().match(/^(\d{3,4})[\/-](\d{1,2})[\/-](\d{1,2})$/);
-  if (!match) {
-    return null;
-  }
-  const y = Number(match[1]);
-  const m = Number(match[2]);
-  const d = Number(match[3]);
-  if (!isValidJalaaliDate(y, m, d)) {
-    return null;
-  }
-  return jalaliToDate(y, m, d);
-}
-
-export function isoDate(date: Date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
-export function formatMoney(value: number | null | undefined) {
-  return new Intl.NumberFormat('fa-IR').format(value || 0);
-}
-
 const DIGIT_MAP: Record<string, string> = {
   '۰': '0',
   '۱': '1',
@@ -81,11 +56,46 @@ const DIGIT_MAP: Record<string, string> = {
   '٩': '9',
 };
 
-export function parseMoney(raw: string): number | null {
-  const digits = [...raw]
+export function normalizeDigits(value: string) {
+  return [...value]
     .map((char) => DIGIT_MAP[char] ?? char)
-    .join('')
-    .replace(/\D/g, '');
+    .join('');
+}
+
+export function parseJalali(value: string): Date | null {
+  const match = normalizeDigits(value)
+    .trim()
+    .match(/^(\d{3,4})[\/-](\d{1,2})[\/-](\d{1,2})$/);
+  if (!match) {
+    return null;
+  }
+  const y = Number(match[1]);
+  const m = Number(match[2]);
+  const d = Number(match[3]);
+  if (!isValidJalaaliDate(y, m, d)) {
+    return null;
+  }
+  return jalaliToDate(y, m, d);
+}
+
+export function isoDate(date: Date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+export function formatMoney(value: number | null | undefined) {
+  const toman = Math.round(Number(value || 0) / 10);
+  return new Intl.NumberFormat('fa-IR').format(toman);
+}
+
+export function formatMoneyRial(value: number | null | undefined) {
+  return new Intl.NumberFormat('fa-IR').format(Math.round(Number(value || 0)));
+}
+
+export function parseMoney(raw: string): number | null {
+  const digits = normalizeDigits(raw).replace(/\D/g, '');
   if (!digits) {
     return null;
   }
@@ -97,7 +107,23 @@ export function formatMoneyInput(value: number | null | undefined) {
   if (value == null || !Number.isFinite(value) || value === 0) {
     return '';
   }
-  return formatMoney(value);
+  return formatMoneyRial(value);
+}
+
+/** Live mask while typing Jalali date digits → 1405/01/15 */
+export function maskJalaliTyping(raw: string) {
+  const digits = normalizeDigits(raw).replace(/\D/g, '').slice(0, 8);
+  const y = digits.slice(0, 4);
+  const m = digits.slice(4, 6);
+  const d = digits.slice(6, 8);
+  let out = y;
+  if (digits.length > 4) {
+    out += `/${m}`;
+  }
+  if (digits.length > 6) {
+    out += `/${d}`;
+  }
+  return out;
 }
 
 export function monthLength(year: number, month: number) {

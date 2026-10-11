@@ -268,10 +268,16 @@ export class BackupsService implements OnModuleInit {
       const filename = this.dumpFilename(new Date());
       await this.sink.ensure();
       const db = parseDatabaseUrl();
+      const dumpBin = pgTool('pg_dump');
+      if (!existsSync(dumpBin) && dumpBin.includes('pgsql')) {
+        throw new BadRequestException(
+          'ابزار pg_dump یافت نشد. Postgres لوکال را با npm run db:up روشن کنید یا PG_BIN را در .env تنظیم کنید.',
+        );
+      }
       let saved = false;
       try {
         const result = await runPg(
-          pgTool('pg_dump'),
+          dumpBin,
           ['-Fc', '-Z', '6', '-h', db.host, '-p', db.port, '-U', db.user, '-d', db.database, '-f', this.sink.pathFor(id)],
           db.password,
         );

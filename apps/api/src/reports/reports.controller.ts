@@ -13,7 +13,7 @@ export class ReportsController {
     @Query('fiscalYearId') fiscalYearId: string,
     @Query() query: Record<string, string>,
   ) {
-    return this.reports.unitCharges(user, fiscalYearId, parsePagination(query));
+    return this.reports.unitCharges(user, fiscalYearId, parsePagination(query), query);
   }
 
   @Get('debtors')
