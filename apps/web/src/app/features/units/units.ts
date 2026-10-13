@@ -5,7 +5,7 @@ import { RouterLink } from '@angular/router';
 import { ContextService } from '../../core/context.service';
 import { AuthService } from '../../core/auth.service';
 import { ToastService } from '../../core/toast.service';
-import { formatMoney } from '../../core/jalali';
+import { formatMoney, formatMoneyToman } from '../../core/jalali';
 import { watchBuilding } from '../../core/watch-context';
 import { ALL_QUERY, DEFAULT_PAGE_SIZE, Paged, pageQuery } from '../../core/pagination';
 import { withBusy } from '../../core/with-busy';
@@ -37,6 +37,7 @@ export class Units {
   formOpen = signal(false);
   editingId = signal<string | null>(null);
   formatMoney = formatMoney;
+  formatMoneyToman = formatMoneyToman;
   form = this.fb.nonNullable.group({
     number: ['', Validators.required],
     floor: [null as number | null],

@@ -44,6 +44,20 @@ export class ReceiptsController {
     });
   }
 
+  @Get('receipt-payments')
+  listPayments(
+    @CurrentUser() user: AuthUser,
+    @Query('buildingId') buildingId: string,
+    @Query('fiscalYearId') fiscalYearId: string,
+    @Query() query: Record<string, string>,
+  ) {
+    return this.receipts.listPayments(user, buildingId, fiscalYearId, parsePagination(query), {
+      q: query.q,
+      unitQ: query.unitQ,
+      sort: query.sort,
+    });
+  }
+
   @Get('receipts/:id')
   find(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.receipts.find(user, id);

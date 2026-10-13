@@ -5,7 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../core/auth.service';
 import { ContextService } from '../../core/context.service';
 import { ToastService } from '../../core/toast.service';
-import { formatJalali, formatMoney, isoDate } from '../../core/jalali';
+import { formatJalali, formatMoney, formatMoneyToman, isoDate } from '../../core/jalali';
 import { PAYMENT_METHOD_OPTIONS, paymentMethodLabel } from '../../core/payment-method';
 import { watchBuildingYear } from '../../core/watch-context';
 import { ALL_QUERY, DEFAULT_PAGE_SIZE, Paged } from '../../core/pagination';
@@ -44,6 +44,7 @@ export class UnitLedger {
   imageFile = signal<File | null>(null);
   cropper = viewChild(ImageCropper);
   formatMoney = formatMoney;
+  formatMoneyToman = formatMoneyToman;
   formatJalali = formatJalali;
   paymentMethods = PAYMENT_METHOD_OPTIONS;
   methodLabel = paymentMethodLabel;

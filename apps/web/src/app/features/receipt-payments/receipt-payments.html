@@ -1,0 +1,148 @@
+<section class="ui-page">
+  <div class="ui-page-head">
+    <div>
+      <h1 class="ui-title">ریز دریافتی‌ها</h1>
+      <p class="ui-muted">هر واریزی جداگانه — بدون باز کردن سند دریافت</p>
+    </div>
+    <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+      <a class="ui-btn-ghost w-full sm:w-auto" routerLink="/receipts">صفحه دریافت‌ها</a>
+      <button class="ui-btn-primary w-full sm:w-auto" type="button" (click)="openCreate()">ثبت دریافت</button>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 max-w-5xl">
+    <label class="ui-field">
+      <span class="ui-label">واحد</span>
+      <input
+        class="ui-input"
+        [value]="unitSearch()"
+        (input)="onUnitSearch($any($event.target).value)"
+        placeholder="شماره واحد، مالک، ساکن..."
+      />
+    </label>
+    <label class="ui-field">
+      <span class="ui-label">جستجو</span>
+      <input
+        class="ui-input"
+        [value]="search()"
+        (input)="onSearch($any($event.target).value)"
+        placeholder="شماره سند، شرح، نوع، ماه..."
+      />
+    </label>
+    <label class="ui-field">
+      <span class="ui-label">مرتب‌سازی</span>
+      <select class="ui-input" [value]="sort()" (change)="onSort($any($event.target).value)">
+        <option value="date_desc">تاریخ، جدیدترین</option>
+        <option value="date_asc">تاریخ، قدیمی‌ترین</option>
+        <option value="unit">شماره واحد</option>
+        <option value="amount_desc">مبلغ، بیشترین</option>
+        <option value="amount_asc">مبلغ، کمترین</option>
+        <option value="number">شماره سند</option>
+      </select>
+    </label>
+  </div>
+
+  @if (loading() && !rows().length) {
+    <app-skeleton kind="list" />
+  } @else if (!rows().length) {
+    <div class="ui-empty">
+      @if (search().trim() || unitSearch().trim()) {
+        <p>نتیجه‌ای برای این جستجو پیدا نشد.</p>
+      } @else {
+        <p>واریزی در این سال مالی ثبت نشده است.</p>
+        <button class="ui-btn-primary mt-4" type="button" (click)="openCreate()">ثبت دریافت</button>
+      }
+    </div>
+  } @else {
+    <div class="ui-cards">
+      @for (row of rows(); track row.id) {
+        <article class="ui-card space-y-2">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <p class="text-lg font-bold text-slate-900">واحد {{ row.receipt?.unit?.number || '—' }}</p>
+              <p class="ui-muted">{{ formatJalali(row.date) }} · {{ methodLabel(row.paymentMethod) }}</p>
+              <p class="text-sm text-slate-600">{{ row.receiptType?.name || '—' }}</p>
+              @if (row.monthsLabel) {
+                <p class="ui-muted">{{ row.monthsLabel }}</p>
+              }
+              @if (row.description) {
+                <p class="truncate text-sm text-slate-500">{{ row.description }}</p>
+              }
+              @if (row.fromRequest) {
+                <span class="ui-chip-partial mt-1">درخواست ساکن</span>
+              }
+            </div>
+            <div class="flex shrink-0 flex-col items-end gap-2">
+              <p class="ui-money font-semibold">{{ formatMoneyToman(row.amount) }}</p>
+              @if (row.receipt?.number) {
+                <a class="ui-btn-ghost h-8 px-3 text-xs" routerLink="/receipts">سند {{ row.receipt.number }}</a>
+              }
+            </div>
+          </div>
+        </article>
+      }
+    </div>
+
+    <div class="ui-table-wrap ui-table-desktop">
+      <table class="ui-table">
+        <thead>
+          <tr>
+            <th>ردیف</th>
+            <th>واحد</th>
+            <th>تاریخ</th>
+            <th>نوع</th>
+            <th>روش</th>
+            <th>پوشش</th>
+            <th>مبلغ (تومان)</th>
+            <th>سند</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.id; let i = $index) {
+            <tr>
+              <td>{{ rowNo(i) }}</td>
+              <td class="font-semibold">{{ row.receipt?.unit?.number || '—' }}</td>
+              <td>{{ formatJalali(row.date) }}</td>
+              <td>
+                {{ row.receiptType?.name || '—' }}
+                @if (row.fromRequest) {
+                  <span class="ui-chip-partial mr-1">درخواست</span>
+                }
+              </td>
+              <td>{{ methodLabel(row.paymentMethod) }}</td>
+              <td class="max-w-xs whitespace-normal text-sm text-slate-600">{{ row.monthsLabel || row.description || '—' }}</td>
+              <td class="ui-money font-semibold">{{ formatMoney(row.amount) }}</td>
+              <td>
+                @if (row.receipt?.number) {
+                  <a class="ui-text-action" routerLink="/receipts">{{ row.receipt.number }}</a>
+                } @else {
+                  —
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="rounded-2xl border border-slate-200 bg-white p-4">
+      <p class="ui-label mb-3">جمع به تفکیک نوع (تومان)</p>
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        @for (item of typeTotals(); track item.id) {
+          <div>
+            <p class="text-sm text-slate-500">{{ item.name }}</p>
+            <p class="ui-money font-semibold text-slate-900">{{ formatMoney(item.amount) }}</p>
+          </div>
+        }
+        <div class="col-span-2 border-t border-slate-100 pt-3 sm:col-span-1 sm:border-s sm:border-t-0 sm:ps-4 sm:pt-0">
+          <p class="text-sm font-semibold text-slate-700">جمع</p>
+          <p class="ui-money text-lg font-bold text-slate-900">{{ formatMoney(totalsTotal()) }}</p>
+        </div>
+      </div>
+    </div>
+
+    <app-pager class="mt-3 block" [(page)]="page" [(size)]="pageSize" [total]="total()" itemLabel="واریزی" (changed)="load()" />
+  }
+
+  <app-receipt-form-rail #receiptForm [(open)]="formOpen" (saved)="onReceiptSaved()" />
+</section>

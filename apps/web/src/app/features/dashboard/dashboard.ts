@@ -5,7 +5,7 @@ import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth.service';
 import { ContextService } from '../../core/context.service';
 import { ToastService } from '../../core/toast.service';
-import { formatJalali, formatMoney, isoDate } from '../../core/jalali';
+import { formatJalali, formatMoney, formatMoneyToman, isoDate } from '../../core/jalali';
 import { PAYMENT_METHOD_OPTIONS } from '../../core/payment-method';
 import { watchBuildingYear } from '../../core/watch-context';
 import { ALL_QUERY, DEFAULT_PAGE_SIZE, Paged, pageQuery } from '../../core/pagination';
@@ -26,6 +26,12 @@ type NoticeSummary = {
   unpaidAmount: number;
   paidBills: number;
   notices: number;
+};
+
+type BalanceSummary = {
+  receiptsTotal: number;
+  paymentsTotal: number;
+  balance: number;
 };
 
 @Component({
@@ -57,6 +63,7 @@ export class Dashboard {
   pageSize = signal(DEFAULT_PAGE_SIZE);
   filter = signal<BoardFilter>('all');
   summary = signal<NoticeSummary | null>(null);
+  balance = signal<BalanceSummary | null>(null);
   preview = signal<{ url: string; title: string } | null>(null);
   loading = signal(true);
   saving = signal(false);
@@ -75,6 +82,7 @@ export class Dashboard {
   proofPreview = signal<string | null>(null);
 
   formatMoney = formatMoney;
+  formatMoneyToman = formatMoneyToman;
   formatJalali = formatJalali;
   paymentMethods = PAYMENT_METHOD_OPTIONS;
   filters: { id: BoardFilter; label: string }[] = [
@@ -84,17 +92,19 @@ export class Dashboard {
     { id: 'notice', label: 'اطلاعیه' },
   ];
   isStaff = computed(() => this.auth.isStaff());
+  canSeeBalance = computed(() => this.auth.canSeeReports());
   shortcuts = computed(() => {
     if (this.auth.isStaff()) {
       return [
         { path: '/units', label: 'واحدها', hint: 'ساکنین و شارژ' },
         { path: '/receipts', label: 'دریافت‌ها', hint: 'وصول شارژ' },
         { path: '/payments', label: 'پرداخت‌ها', hint: 'هزینه‌های ساختمان' },
-        { path: '/reports/debtors', label: 'بدهکاران', hint: 'مانده واحدها' },
+        { path: '/reports/balance', label: 'بیلان مالی', hint: 'دریافت، پرداخت و تراز' },
       ];
     }
     if (this.auth.canSeeReports()) {
       return [
+        { path: '/reports/balance', label: 'بیلان مالی', hint: 'دریافت، پرداخت و تراز' },
         { path: '/reports/charges', label: 'گزارش شارژ', hint: 'وضعیت ماه‌ها' },
         { path: '/reports/debtors', label: 'بدهکاران', hint: 'مانده واحدها' },
         { path: '/reports/payments', label: 'گزارش پرداخت', hint: 'هزینه‌ها' },
@@ -129,6 +139,7 @@ export class Dashboard {
   resetAndLoad() {
     this.page.set(1);
     this.loadSummary();
+    this.loadBalance();
     this.loadList();
     if (this.isStaff()) {
       this.loadCategories();
@@ -155,6 +166,26 @@ export class Dashboard {
       next: (res) => this.summary.set(res),
       error: () => this.summary.set(null),
     });
+  }
+
+  loadBalance() {
+    const buildingId = this.ctx.buildingId();
+    const fiscalYearId = this.ctx.fiscalYearId();
+    if (!buildingId || !fiscalYearId || !this.canSeeBalance()) {
+      this.balance.set(null);
+      return;
+    }
+    this.http
+      .get<BalanceSummary>('/api/reports/balance', { params: { buildingId, fiscalYearId } })
+      .subscribe({
+        next: (res) =>
+          this.balance.set({
+            receiptsTotal: res.receiptsTotal,
+            paymentsTotal: res.paymentsTotal,
+            balance: res.balance,
+          }),
+        error: () => this.balance.set(null),
+      });
   }
 
   private listParams(buildingId: string, fiscalYearId: string) {

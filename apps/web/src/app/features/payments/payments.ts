@@ -3,7 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { ContextService } from '../../core/context.service';
 import { ToastService } from '../../core/toast.service';
-import { formatJalali, formatMoney, isoDate } from '../../core/jalali';
+import { formatJalali, formatMoney, formatMoneyToman, isoDate } from '../../core/jalali';
 import { PAYMENT_METHOD_OPTIONS } from '../../core/payment-method';
 import { watchBuildingYear } from '../../core/watch-context';
 import { ALL_QUERY, DEFAULT_PAGE_SIZE, Paged, pageQuery } from '../../core/pagination';
@@ -44,6 +44,7 @@ export class Payments {
   editingRow = signal<any | null>(null);
   savingProof = signal(false);
   formatMoney = formatMoney;
+  formatMoneyToman = formatMoneyToman;
   paymentMethods = PAYMENT_METHOD_OPTIONS;
   formatJalali = formatJalali;
   form = this.fb.nonNullable.group({

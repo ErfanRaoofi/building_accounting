@@ -47,6 +47,11 @@ export const appRoutes: Route[] = [
     loadComponent: () => import('./features/print/print-debtors').then((m) => m.PrintDebtors),
   },
   {
+    path: 'print/balance',
+    canActivate: [authGuard, fiscalYearGuard, reportsGuard],
+    loadComponent: () => import('./features/print/print-balance').then((m) => m.PrintBalance),
+  },
+  {
     path: '',
     canActivate: [authGuard, fiscalYearGuard],
     loadComponent: () => import('./layout/shell').then((m) => m.Shell),
@@ -89,6 +94,11 @@ export const appRoutes: Route[] = [
         loadComponent: () => import('./features/receipts/receipts').then((m) => m.Receipts),
       },
       {
+        path: 'receipt-payments',
+        canActivate: [staffGuard],
+        loadComponent: () => import('./features/receipt-payments/receipt-payments').then((m) => m.ReceiptPayments),
+      },
+      {
         path: 'payments',
         canActivate: [staffGuard],
         loadComponent: () => import('./features/payments/payments').then((m) => m.Payments),
@@ -107,6 +117,11 @@ export const appRoutes: Route[] = [
         path: 'reports/payments',
         canActivate: [reportsGuard],
         loadComponent: () => import('./features/reports-payments/reports-payments').then((m) => m.ReportsPayments),
+      },
+      {
+        path: 'reports/balance',
+        canActivate: [reportsGuard],
+        loadComponent: () => import('./features/reports-balance/reports-balance').then((m) => m.ReportsBalance),
       },
     ],
   },

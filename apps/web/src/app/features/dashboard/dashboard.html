@@ -15,11 +15,37 @@
     </div>
   </div>
 
+  @if (canSeeBalance()) {
+    <div class="grid gap-3 sm:grid-cols-3">
+      <a class="ui-card transition hover:border-emerald-200 hover:shadow-md" routerLink="/reports/balance">
+        <p class="text-sm text-slate-500">جمع دریافت (تومان)</p>
+        <p class="ui-money mt-2 text-2xl font-bold text-emerald-700">{{ formatMoney(balance()?.receiptsTotal || 0) }}</p>
+        <p class="mt-1 text-sm text-slate-500">جزئیات بیلان</p>
+      </a>
+      <a class="ui-card transition hover:border-rose-200 hover:shadow-md" routerLink="/reports/balance">
+        <p class="text-sm text-slate-500">جمع پرداخت (تومان)</p>
+        <p class="ui-money mt-2 text-2xl font-bold text-rose-700">{{ formatMoney(balance()?.paymentsTotal || 0) }}</p>
+        <p class="mt-1 text-sm text-slate-500">جزئیات بیلان</p>
+      </a>
+      <a class="ui-card transition hover:border-brand-200 hover:shadow-md" routerLink="/reports/balance">
+        <p class="text-sm text-slate-500">تراز (تومان)</p>
+        <p
+          class="ui-money mt-2 text-2xl font-bold"
+          [class.text-emerald-700]="(balance()?.balance || 0) >= 0"
+          [class.text-rose-700]="(balance()?.balance || 0) < 0"
+        >
+          {{ formatMoney(balance()?.balance || 0) }}
+        </p>
+        <p class="mt-1 text-sm text-slate-500">دریافت منهای پرداخت</p>
+      </a>
+    </div>
+  }
+
   <div class="grid gap-3 sm:grid-cols-3">
     <button class="ui-card text-start transition hover:border-amber-200 hover:shadow-md" type="button" (click)="setFilter('unpaid')">
       <p class="text-sm text-slate-500">قبض پرداخت‌نشده</p>
       <p class="mt-2 text-3xl font-bold text-amber-700">{{ summary()?.unpaidBills ?? '—' }}</p>
-      <p class="ui-money mt-1 text-sm text-slate-600">{{ formatMoney(summary()?.unpaidAmount || 0) }}</p>
+      <p class="ui-money mt-1 text-sm text-slate-600">{{ formatMoneyToman(summary()?.unpaidAmount || 0) }}</p>
     </button>
     <button class="ui-card text-start transition hover:border-emerald-200 hover:shadow-md" type="button" (click)="setFilter('paid')">
       <p class="text-sm text-slate-500">قبض پرداخت‌شده</p>
@@ -114,7 +140,7 @@
               <p class="mt-1 text-xs text-slate-400">{{ row.createdBy?.name || '—' }}</p>
             </div>
             @if (row.amount != null) {
-              <p class="ui-money text-2xl font-bold text-slate-900">{{ formatMoney(row.amount) }}</p>
+              <p class="ui-money text-2xl font-bold text-slate-900">{{ formatMoneyToman(row.amount) }}</p>
             }
             <div class="mt-auto flex flex-wrap items-center gap-2">
               @if (row.billStatus === 'PAID' && row.proofImageUrl) {

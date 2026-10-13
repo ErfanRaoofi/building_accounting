@@ -17,22 +17,28 @@ import { tomanWords } from '../core/persian-words';
   providers: [{ provide: NG_VALUE_ACCESSOR, useExisting: forwardRef(() => MoneyInput), multi: true }],
   host: { class: 'block' },
   template: `
-    <input
-      #el
-      class="ui-input ui-money"
-      type="text"
-      inputmode="numeric"
-      dir="ltr"
-      autocomplete="off"
-      spellcheck="false"
-      [value]="display()"
-      [disabled]="disabled()"
-      [attr.placeholder]="placeholder()"
-      (input)="onInput($any($event.target))"
-      (focus)="onFocus()"
-      (blur)="onBlur()"
-      (keydown.enter)="onEnter($event)"
-    />
+    <div class="relative">
+      <input
+        #el
+        class="ui-input ui-money pr-12"
+        type="text"
+        inputmode="numeric"
+        dir="ltr"
+        autocomplete="off"
+        spellcheck="false"
+        [value]="display()"
+        [disabled]="disabled()"
+        [attr.placeholder]="placeholder()"
+        aria-label="مبلغ به ریال"
+        (input)="onInput($any($event.target))"
+        (focus)="onFocus()"
+        (blur)="onBlur()"
+        (keydown.enter)="onEnter($event)"
+      />
+      <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs font-semibold text-slate-500">
+        ریال
+      </span>
+    </div>
   `,
 })
 export class MoneyInput implements ControlValueAccessor, OnDestroy {

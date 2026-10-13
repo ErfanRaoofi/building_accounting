@@ -1,0 +1,282 @@
+<app-form-rail
+  [(open)]="open"
+  [title]="editingId() ? 'ویرایش دریافت' : 'ثبت دریافت'"
+  [subtitle]="editingId() ? 'مبلغ هر ماه، حتی ماه‌های قبل، روی همین سند اصلاح می‌شود' : 'واریزی به سند واحد اضافه می‌شود؛ فقط نوع شارژ روی بدهی ماه‌ها می‌نشیند · F9 = ثبت'"
+  [wide]="true"
+>
+  <form class="flex min-h-0 flex-1 flex-col" [formGroup]="form" (ngSubmit)="save()">
+    <div class="ui-form-scroll">
+      <label class="ui-field">
+        <span class="ui-label">نوع دریافت</span>
+        <select
+          #typeEl
+          class="ui-input"
+          formControlName="receiptTypeId"
+          (keydown.enter)="onEnter($event, unitEl)"
+        >
+          @for (t of types(); track t.id) {
+            <option [value]="t.id">{{ t.name }}</option>
+          }
+        </select>
+      </label>
+
+      <div class="ui-field">
+        <div class="flex items-center justify-between gap-2">
+          <span class="ui-label">واحد</span>
+          @if (form.controls.unitId.value) {
+            <button class="text-xs text-brand-700" type="button" tabindex="-1" (click)="clearUnit()">پاک کردن</button>
+          }
+        </div>
+        <div class="relative">
+          <input
+            #unitEl
+            class="ui-input"
+            type="text"
+            autocomplete="off"
+            [value]="unitQuery()"
+            placeholder="شماره واحد یا نام مالک…"
+            (input)="onUnitInput($any($event.target).value)"
+            (focus)="onUnitFocus()"
+            (blur)="onUnitBlur()"
+            (keydown)="onUnitKeydown($event)"
+          />
+          @if (unitMenuOpen() && filteredUnits().length) {
+            <div
+              #unitMenu
+              class="absolute inset-x-0 top-full z-20 mt-1 max-h-72 overflow-auto rounded-xl border border-slate-200 bg-white py-1 shadow-lg"
+            >
+              @for (u of filteredUnits(); track u.id; let i = $index) {
+                <button
+                  class="flex w-full items-center justify-between gap-3 px-3 py-2 text-right text-sm hover:bg-brand-50"
+                  type="button"
+                  tabindex="-1"
+                  [attr.data-unit-index]="i"
+                  [class.bg-brand-50]="unitHighlight() === i"
+                  [class.font-semibold]="unitHighlight() === i"
+                  (mousedown)="$event.preventDefault(); pickUnit(u); focusNext(dateEl)"
+                >
+                  <span>واحد {{ u.number }}</span>
+                  <span class="truncate text-slate-500">{{ u.ownerName || '—' }}</span>
+                </button>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <label class="ui-field">
+        <span class="ui-label">تاریخ شمسی (قابل تایپ)</span>
+        <app-jalali-datepicker #dateEl formControlName="date" (enter)="onEnter($event, methodEl)" />
+      </label>
+      <label class="ui-field">
+        <span class="ui-label">روش پرداخت</span>
+        <select #methodEl class="ui-input" formControlName="paymentMethod" (keydown.enter)="onEnter($event, descEl)">
+          @for (item of paymentMethods; track item.value) {
+            <option [value]="item.value">{{ item.label }}</option>
+          }
+        </select>
+      </label>
+      <label class="ui-field">
+        <span class="ui-label">شرح</span>
+        <input #descEl class="ui-input" formControlName="description" (keydown.enter)="onEnter($event, amountField())" />
+      </label>
+      @if (selectedType()?.kind !== 'CHARGE') {
+        <label class="ui-field">
+          <span class="ui-label">مبلغ (ریال)</span>
+          <app-money-input #otherAmt formControlName="otherAmount" (enter)="onAmountEnter($event)" />
+        </label>
+      }
+      @if (selectedType()?.kind === 'CHARGE') {
+        <div class="space-y-3 rounded-2xl border border-slate-200 p-3">
+          @if (credit() > 0) {
+            <p class="rounded-xl bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800">
+              بستانکاری فعلی این واحد:
+              <span class="ui-money">{{ formatMoneyToman(credit()) }}</span>
+            </p>
+          }
+          <label class="ui-field">
+            <span class="ui-label">مبلغ دریافتی (ریال)</span>
+            <app-money-input #receivedAmt formControlName="receivedAmount" (enter)="onAmountEnter($event)" />
+          </label>
+          @if (!editingId() && chargeReceipt(); as doc) {
+            <p class="rounded-xl bg-brand-50 px-3 py-2 text-sm font-medium text-brand-800">
+              این مبلغ به سند {{ doc.number }} همین واحد اضافه می‌شود. سند جدید ساخته نمی‌شود.
+            </p>
+          }
+          @if (editingId()) {
+            <p class="text-sm text-slate-500">
+              مبلغ دریافت هر ماه را به ریال عوض کنید. ماه‌های قبلی هم باز هستند. برای هر ماه مشخص کنید پر بوده یا خالی. صفر یعنی آن ماه از این سند برداشته می‌شود.
+            </p>
+          } @else {
+            <p class="text-sm text-slate-500">
+              فقط ماه‌های تسویه‌نشده نشان داده می‌شوند؛ مبلغ هر کدام را می‌توانید جداگانه بزنید. Enter یا F9 ثبت می‌کند.
+            </p>
+          }
+          @if (prepaidAmount() > 0) {
+            <p class="rounded-xl bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-800">
+              پیش‌پرداخت / بستانکار این سند:
+              <span class="ui-money">{{ formatMoneyToman(prepaidAmount()) }}</span>
+            </p>
+          }
+          @if (invoicesLoading()) {
+            <app-skeleton kind="checks" [rows]="4" />
+          } @else if (!invoices().length) {
+            <p class="text-sm text-slate-500">برای این واحد شارژ سال مالی صادر نشده است؛ مبلغ به‌صورت پیش‌پرداخت می‌ماند.</p>
+          } @else if (!editingId() && !unpaidInvoices().length) {
+            <p class="text-sm text-slate-500">همه ماه‌ها قبلاً تسویه شده‌اند؛ مبلغ جدید به‌صورت پیش‌پرداخت می‌ماند.</p>
+          } @else {
+            @if (editingId()) {
+              <p class="text-sm text-slate-500">
+                جمع ماه‌ها:
+                <strong class="ui-money text-slate-900">{{ formatMoneyToman(monthDraftTotal()) }}</strong>
+              </p>
+              <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                @for (row of invoices(); track row.id) {
+                  <div
+                    class="space-y-2 rounded-xl border p-3"
+                    [class.border-brand-600]="monthAmount(row.id) > 0"
+                    [class.bg-brand-50]="monthAmount(row.id) > 0"
+                    [class.border-slate-200]="monthAmount(row.id) <= 0"
+                  >
+                    <div class="flex items-start justify-between gap-3">
+                      <span class="min-w-0">
+                        <span class="block font-semibold">{{ row.monthTitle }}</span>
+                        <span class="text-xs text-slate-500">
+                          {{ statusLabel(row.status) }}
+                          · شارژ {{ formatMoneyToman(row.amount) }}
+                          · سقف {{ formatMoneyToman(invoiceRemaining(row)) }}
+                        </span>
+                      </span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-1">
+                      <button
+                        class="h-8 rounded-lg border text-xs font-semibold disabled:opacity-50"
+                        type="button"
+                        [disabled]="occupancyId() === row.id"
+                        [class.border-brand-600]="row.occupancy !== 'VACANT'"
+                        [class.bg-brand-50]="row.occupancy !== 'VACANT'"
+                        [class.text-brand-800]="row.occupancy !== 'VACANT'"
+                        [class.border-slate-200]="row.occupancy === 'VACANT'"
+                        (click)="setOccupancy(row, 'OCCUPIED')"
+                      >
+                        پر
+                      </button>
+                      <button
+                        class="h-8 rounded-lg border text-xs font-semibold disabled:opacity-50"
+                        type="button"
+                        [disabled]="occupancyId() === row.id"
+                        [class.border-amber-600]="row.occupancy === 'VACANT'"
+                        [class.bg-amber-50]="row.occupancy === 'VACANT'"
+                        [class.text-amber-800]="row.occupancy === 'VACANT'"
+                        [class.border-slate-200]="row.occupancy !== 'VACANT'"
+                        (click)="setOccupancy(row, 'VACANT')"
+                      >
+                        خالی
+                      </button>
+                    </div>
+                    <label class="ui-field">
+                      <span class="ui-label">دریافت این ماه (ریال)</span>
+                      <app-money-input
+                        [ngModel]="monthAmount(row.id)"
+                        [ngModelOptions]="{ standalone: true }"
+                        [disabled]="!canEditMonth(row)"
+                        (ngModelChange)="rememberMonth(row.id, $event)"
+                      />
+                    </label>
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <p class="text-sm text-slate-500">
+                  جمع ماه‌ها:
+                  <strong class="ui-money text-slate-900">{{ formatMoneyToman(monthDraftTotal() || selectedTotal()) }}</strong>
+                </p>
+                <div class="flex gap-2">
+                  @if (unpaidInvoices().length) {
+                    <button class="ui-btn-ghost h-8 px-3 text-xs" type="button" tabindex="-1" (click)="selectRemaining()">تا پایان سال</button>
+                  }
+                  @if (monthDraftTotal() || selectedTotal()) {
+                    <button class="ui-btn-ghost h-8 px-3 text-xs" type="button" tabindex="-1" (click)="clearSelection()">پاک کردن</button>
+                  }
+                </div>
+              </div>
+              <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                @for (row of unpaidInvoices(); track row.id) {
+                  <div
+                    class="space-y-2 rounded-xl border p-3"
+                    [class.border-brand-600]="monthAmount(row.id) > 0 || !!selected()[row.id]"
+                    [class.bg-brand-50]="monthAmount(row.id) > 0 || !!selected()[row.id]"
+                    [class.border-slate-200]="monthAmount(row.id) <= 0 && !selected()[row.id]"
+                  >
+                    <div class="flex items-start justify-between gap-3">
+                      <label class="flex min-w-0 items-center gap-3">
+                        <input
+                          class="ui-check"
+                          type="checkbox"
+                          tabindex="-1"
+                          [checked]="monthAmount(row.id) > 0 || !!selected()[row.id]"
+                          (change)="toggle(row.id, $any($event.target).checked)"
+                        />
+                        <span class="min-w-0">
+                          <span class="block font-semibold">{{ row.monthTitle }}</span>
+                          <span class="text-xs text-slate-500">
+                            {{ statusLabel(row.status) }}
+                            · شارژ {{ formatMoneyToman(row.amount) }}
+                            · سقف {{ formatMoneyToman(invoiceRemaining(row)) }}
+                          </span>
+                        </span>
+                      </label>
+                    </div>
+                    <div class="grid grid-cols-2 gap-1">
+                      <button
+                        class="h-8 rounded-lg border text-xs font-semibold disabled:opacity-50"
+                        type="button"
+                        tabindex="-1"
+                        [disabled]="occupancyId() === row.id"
+                        [class.border-brand-600]="row.occupancy !== 'VACANT'"
+                        [class.bg-brand-50]="row.occupancy !== 'VACANT'"
+                        [class.text-brand-800]="row.occupancy !== 'VACANT'"
+                        [class.border-slate-200]="row.occupancy === 'VACANT'"
+                        (click)="setOccupancy(row, 'OCCUPIED')"
+                      >
+                        پر
+                      </button>
+                      <button
+                        class="h-8 rounded-lg border text-xs font-semibold disabled:opacity-50"
+                        type="button"
+                        tabindex="-1"
+                        [disabled]="occupancyId() === row.id"
+                        [class.border-amber-600]="row.occupancy === 'VACANT'"
+                        [class.bg-amber-50]="row.occupancy === 'VACANT'"
+                        [class.text-amber-800]="row.occupancy === 'VACANT'"
+                        [class.border-slate-200]="row.occupancy !== 'VACANT'"
+                        (click)="setOccupancy(row, 'VACANT')"
+                      >
+                        خالی
+                      </button>
+                    </div>
+                    <label class="ui-field">
+                      <span class="ui-label">دریافت این ماه (ریال)</span>
+                      <app-money-input
+                        [ngModel]="monthAmount(row.id)"
+                        [ngModelOptions]="{ standalone: true }"
+                        (ngModelChange)="rememberMonth(row.id, $event)"
+                      />
+                    </label>
+                  </div>
+                }
+              </div>
+            }
+          }
+        </div>
+      }
+    </div>
+    <div class="ui-form-actions">
+      <button class="ui-btn-ghost flex-1" type="button" tabindex="-1" (click)="open.set(false)">انصراف</button>
+      <button class="ui-btn-primary flex-1" type="submit" [disabled]="saving()">
+        <app-busy [on]="saving()" busyText="در حال ذخیره...">{{ editingId() ? 'ذخیره' : 'ثبت دریافت (F9)' }}</app-busy>
+      </button>
+    </div>
+  </form>
+</app-form-rail>

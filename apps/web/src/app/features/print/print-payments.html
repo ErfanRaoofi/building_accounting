@@ -18,8 +18,8 @@
           <th class="border border-slate-200 bg-slate-50 px-2 py-2">تاریخ</th>
           <th class="border border-slate-200 bg-slate-50 px-2 py-2">شرح</th>
           <th class="border border-slate-200 bg-slate-50 px-2 py-2">سرفصل</th>
-          <th class="border border-slate-200 bg-slate-50 px-2 py-2">برداشت</th>
-          <th class="border border-slate-200 bg-slate-50 px-2 py-2">مانده</th>
+          <th class="border border-slate-200 bg-slate-50 px-2 py-2">برداشت (تومان)</th>
+          <th class="border border-slate-200 bg-slate-50 px-2 py-2">مانده (تومان)</th>
           <th class="border border-slate-200 bg-slate-50 px-2 py-2">پیگیری</th>
           <th class="border border-slate-200 bg-slate-50 px-2 py-2">سند</th>
         </tr>
@@ -38,6 +38,6 @@
         }
       </tbody>
     </table>
-    <p class="mt-4 font-semibold">جمع کل: {{ formatMoney(d.total) }}</p>
+    <p class="mt-4 font-semibold">جمع کل: {{ formatMoneyToman(d.total) }}</p>
   }
 </div>

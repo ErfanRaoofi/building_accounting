@@ -2,7 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { ContextService } from '../../core/context.service';
-import { formatJalali, formatMoney } from '../../core/jalali';
+import { formatJalali, formatMoney, formatMoneyToman } from '../../core/jalali';
 import { watchBuildingYear } from '../../core/watch-context';
 import { DEFAULT_PAGE_SIZE, pageQuery } from '../../core/pagination';
 import { withBusy } from '../../core/with-busy';
@@ -22,6 +22,7 @@ export class ReportsPayments {
   pageSize = signal(DEFAULT_PAGE_SIZE);
   loading = signal(true);
   formatMoney = formatMoney;
+  formatMoneyToman = formatMoneyToman;
   formatJalali = formatJalali;
 
   constructor() {

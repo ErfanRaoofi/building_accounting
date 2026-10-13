@@ -2,7 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { ContextService } from '../../core/context.service';
-import { compactMoney, formatMoney, monthChipLabel } from '../../core/jalali';
+import { compactMoney, formatMoney, formatMoneyToman, monthChipLabel } from '../../core/jalali';
 import { watchBuildingYear } from '../../core/watch-context';
 import { ALL_QUERY } from '../../core/pagination';
 import { withBusy } from '../../core/with-busy';
@@ -25,6 +25,7 @@ export class ReportsDebtors {
   loading = signal(true);
   private loadSeq = 0;
   formatMoney = formatMoney;
+  formatMoneyToman = formatMoneyToman;
   compactMoney = compactMoney;
   monthChipLabel = monthChipLabel;
 

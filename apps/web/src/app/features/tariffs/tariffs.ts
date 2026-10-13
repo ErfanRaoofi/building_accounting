@@ -3,7 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { ContextService } from '../../core/context.service';
 import { ToastService } from '../../core/toast.service';
-import { formatMoney } from '../../core/jalali';
+import { formatMoney, formatMoneyToman } from '../../core/jalali';
 import { watchBuilding } from '../../core/watch-context';
 import { DEFAULT_PAGE_SIZE, Paged, pageQuery } from '../../core/pagination';
 import { withBusy } from '../../core/with-busy';
@@ -33,6 +33,7 @@ export class Tariffs {
   formOpen = signal(false);
   editingId = signal<string | null>(null);
   formatMoney = formatMoney;
+  formatMoneyToman = formatMoneyToman;
   form = this.fb.nonNullable.group({
     name: ['', Validators.required],
     monthlyAmount: [0, Validators.required],

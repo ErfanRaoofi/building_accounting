@@ -13,7 +13,7 @@ import {
 } from './dto';
 import { ChargesService } from '../charges/charges.service';
 import { JALALI_MONTHS, money, normalizeDigits } from '../common/jalali';
-import { paginateQuery, pagedResult, type Pagination } from '../common/pagination';
+import { paginateQuery, pagedResult, pageRows, type Pagination } from '../common/pagination';
 import { STAFF_ROLES } from '../common/roles';
 import { compareUnitNumber } from '../common/unit-number';
 import { ensureUnitReceipt, ensureUnitReceiptsForFiscalYear, nextReceiptNumber } from './unit-receipt';
@@ -24,6 +24,20 @@ type ReceiptSort = (typeof RECEIPT_SORTS)[number];
 function parseReceiptSort(value?: string): ReceiptSort {
   return RECEIPT_SORTS.includes(value as ReceiptSort) ? (value as ReceiptSort) : 'date_desc';
 }
+
+const RECEIPT_PAYMENT_INCLUDE = {
+  receiptType: true,
+  lines: { include: { chargeInvoice: true } },
+  paymentRequest: { select: { id: true } },
+  receipt: {
+    select: {
+      id: true,
+      number: true,
+      unitId: true,
+      unit: { select: { id: true, number: true, ownerName: true, residentName: true } },
+    },
+  },
+} as const;
 
 const RECEIPT_INCLUDE = {
   receiptType: true,
@@ -101,6 +115,186 @@ export class ReceiptsService {
       this.typeTotals(where),
     ]);
     return { ...result, totals };
+  }
+
+  async listPayments(
+    user: AuthUser,
+    buildingId: string,
+    fiscalYearId: string,
+    pagination: Pagination,
+    filters?: { q?: string; unitQ?: string; sort?: string },
+  ) {
+    await this.access.assertRoles(user, buildingId, STAFF_ROLES);
+    const where = this.paymentListWhere(buildingId, fiscalYearId, filters);
+    const sort = parseReceiptSort(filters?.sort);
+    const [result, totals] = await Promise.all([
+      sort === 'unit' ? this.listPaymentsByUnit(where, pagination) : this.listPaymentsOrdered(where, pagination, sort),
+      this.paymentTypeTotals(where),
+    ]);
+    return { ...result, totals };
+  }
+
+  private paymentListWhere(
+    buildingId: string,
+    fiscalYearId: string,
+    filters?: { q?: string; unitQ?: string },
+  ): Prisma.ReceiptPaymentWhereInput {
+    const receiptFilters = [this.unitSearchWhere(filters?.unitQ)].filter((part) => Object.keys(part).length > 0);
+    const receiptWhere: Prisma.ReceiptWhereInput = {
+      buildingId,
+      fiscalYearId,
+      ...(receiptFilters.length === 1
+        ? receiptFilters[0]
+        : receiptFilters.length > 1
+          ? { AND: receiptFilters }
+          : {}),
+    };
+    const search = this.paymentSearchWhere(filters?.q);
+    if (!Object.keys(search).length) {
+      return { receipt: receiptWhere };
+    }
+    return { AND: [{ receipt: receiptWhere }, search] };
+  }
+
+  private paymentSearchWhere(q?: string): Prisma.ReceiptPaymentWhereInput {
+    const term = q?.trim();
+    if (!term) {
+      return {};
+    }
+    const mode = 'insensitive' as const;
+    const or: Prisma.ReceiptPaymentWhereInput[] = [
+      { description: { contains: term, mode } },
+      { receiptType: { name: { contains: term, mode } } },
+      { receipt: { number: { contains: term, mode } } },
+    ];
+    const month = JALALI_MONTHS.findIndex((name) => name === term || name.startsWith(term));
+    if (month >= 0) {
+      or.push({ lines: { some: { chargeInvoice: { jalaliMonth: month + 1 } } } });
+    }
+    const year = Number(term);
+    if (Number.isInteger(year) && year >= 1300 && year <= 1600) {
+      or.push({ lines: { some: { chargeInvoice: { jalaliYear: year } } } });
+    }
+    return { OR: or };
+  }
+
+  private async listPaymentsOrdered(
+    where: Prisma.ReceiptPaymentWhereInput,
+    pagination: Pagination,
+    sort: ReceiptSort,
+  ) {
+    const orderBy = this.paymentOrder(sort);
+    const result = await paginateQuery(
+      pagination,
+      () => this.prisma.receiptPayment.count({ where }),
+      (skip, take) =>
+        this.prisma.receiptPayment.findMany({
+          where,
+          include: RECEIPT_PAYMENT_INCLUDE,
+          orderBy,
+          skip,
+          take,
+        }),
+      () => this.prisma.receiptPayment.findMany({ where, include: RECEIPT_PAYMENT_INCLUDE, orderBy }),
+    );
+    return { ...result, items: result.items.map((row) => this.mapPayment(row)) };
+  }
+
+  private async listPaymentsByUnit(where: Prisma.ReceiptPaymentWhereInput, pagination: Pagination) {
+    const heads = await this.prisma.receiptPayment.findMany({
+      where,
+      select: { id: true, receipt: { select: { unit: { select: { number: true } } } } },
+    });
+    heads.sort(
+      (a, b) => compareUnitNumber(a.receipt.unit?.number, b.receipt.unit?.number) || a.id.localeCompare(b.id),
+    );
+    const page = pagination.all ? heads : heads.slice(pagination.skip, pagination.skip + pagination.take);
+    const rows = page.length
+      ? await this.prisma.receiptPayment.findMany({
+          where: { id: { in: page.map((row) => row.id) } },
+          include: RECEIPT_PAYMENT_INCLUDE,
+        })
+      : [];
+    const order = new Map(page.map((row, index) => [row.id, index]));
+    rows.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+    return pagedResult(
+      rows.map((row) => this.mapPayment(row)),
+      heads.length,
+      pagination.all ? 1 : pagination.page,
+      pagination.all ? heads.length || pagination.pageSize : pagination.pageSize,
+    );
+  }
+
+  private paymentOrder(sort: ReceiptSort): Prisma.ReceiptPaymentOrderByWithRelationInput[] {
+    if (sort === 'date_asc') {
+      return [{ date: 'asc' }, { createdAt: 'asc' }];
+    }
+    if (sort === 'amount_desc') {
+      return [{ amount: 'desc' }, { date: 'desc' }];
+    }
+    if (sort === 'amount_asc') {
+      return [{ amount: 'asc' }, { date: 'desc' }];
+    }
+    if (sort === 'number') {
+      return [{ receipt: { number: 'asc' } }, { date: 'desc' }];
+    }
+    return [{ date: 'desc' }, { createdAt: 'desc' }];
+  }
+
+  private async paymentTypeTotals(where: Prisma.ReceiptPaymentWhereInput) {
+    const grouped = await this.prisma.receiptPayment.groupBy({
+      by: ['receiptTypeId'],
+      where,
+      _sum: { amount: true },
+    });
+    const types = grouped.length
+      ? await this.prisma.receiptType.findMany({ where: { id: { in: grouped.map((row) => row.receiptTypeId) } } })
+      : [];
+    const byId = new Map(types.map((type) => [type.id, type]));
+    const rank = (kind?: ReceiptKind) => (kind === ReceiptKind.CHARGE ? 0 : kind === ReceiptKind.ENTRANCE ? 1 : 2);
+    const byType = grouped
+      .map((row) => {
+        const type = byId.get(row.receiptTypeId);
+        return {
+          id: row.receiptTypeId,
+          name: type?.name || 'سایر',
+          kind: type?.kind || ReceiptKind.OTHER,
+          amount: money(row._sum.amount || 0),
+        };
+      })
+      .filter((row) => row.amount > 0)
+      .sort((a, b) => rank(a.kind) - rank(b.kind) || a.name.localeCompare(b.name, 'fa'));
+    return {
+      byType,
+      total: byType.reduce((sum, row) => sum + row.amount, 0),
+    };
+  }
+
+  private mapPayment(row: any) {
+    const payLines = row.lines || [];
+    const months = this.monthItems({ lines: payLines });
+    const prepaid = payLines.some((line: any) => !line.chargeInvoiceId && !line.chargeInvoice);
+    const charge = row.receiptType?.kind === 'CHARGE';
+    return {
+      id: row.id,
+      date: row.date,
+      amount: money(row.amount),
+      paymentMethod: row.paymentMethod,
+      description: row.description,
+      createdAt: row.createdAt,
+      receiptType: row.receiptType || null,
+      receipt: row.receipt
+        ? {
+            id: row.receipt.id,
+            number: row.receipt.number,
+            unitId: row.receipt.unitId,
+            unit: row.receipt.unit || null,
+          }
+        : null,
+      months,
+      monthsLabel: charge ? (months.length || prepaid ? this.monthsLabel(months, prepaid) : 'بدون ماه') : null,
+      fromRequest: Boolean(row.paymentRequest),
+    };
   }
 
   private async listOrdered(where: Prisma.ReceiptWhereInput, pagination: Pagination, sort: ReceiptSort) {

@@ -282,6 +282,16 @@
     @apply h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-brand-600 focus:bg-white focus:ring-2 focus:ring-brand-600/20;
   }
 
+  /* اعداد و فیلدهای LTR همیشه از چپ */
+  .ui-input[dir='ltr'],
+  input.ui-input[type='number'],
+  input.ui-input[inputmode='numeric'],
+  input.ui-input[inputmode='decimal'],
+  input.ui-input[inputmode='tel'] {
+    direction: ltr;
+    text-align: left;
+  }
+
   .ui-password {
     @apply relative block;
     direction: ltr;

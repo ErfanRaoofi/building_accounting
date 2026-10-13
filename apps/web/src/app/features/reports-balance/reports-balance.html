@@ -1,0 +1,120 @@
+<section class="ui-page">
+  <div class="ui-page-head">
+    <div>
+      <h1 class="ui-title">بیلان مالی</h1>
+      <p class="ui-muted">جمع دریافت‌ها، پرداخت‌ها و تراز سال مالی جاری</p>
+    </div>
+    <a class="ui-btn-primary w-full sm:w-auto" routerLink="/print/balance" target="_blank">چاپ</a>
+  </div>
+
+  @if (loading()) {
+    <app-skeleton kind="stats" />
+  } @else if (data(); as d) {
+    <div class="grid gap-3 sm:grid-cols-3">
+      <div class="ui-card">
+        <p class="ui-muted">جمع دریافت (تومان)</p>
+        <p class="ui-money mt-2 text-2xl font-bold text-emerald-700">{{ formatMoney(d.receiptsTotal) }}</p>
+      </div>
+      <div class="ui-card">
+        <p class="ui-muted">جمع پرداخت (تومان)</p>
+        <p class="ui-money mt-2 text-2xl font-bold text-rose-700">{{ formatMoney(d.paymentsTotal) }}</p>
+      </div>
+      <div class="ui-card">
+        <p class="ui-muted">تراز (تومان)</p>
+        <p
+          class="ui-money mt-2 text-2xl font-bold"
+          [class.text-emerald-700]="d.balance >= 0"
+          [class.text-rose-700]="d.balance < 0"
+        >
+          {{ formatMoney(d.balance) }}
+        </p>
+        <p class="mt-1 text-sm text-slate-500">{{ d.balance >= 0 ? 'مانده مثبت ساختمان' : 'کسری نسبت به دریافت‌ها' }}</p>
+      </div>
+    </div>
+
+    <div class="grid gap-4 lg:grid-cols-2">
+      <div class="ui-card">
+        <h2 class="text-base font-bold text-slate-900">تفکیک دریافت (تومان)</h2>
+        @if (!d.receiptsByType.length) {
+          <p class="ui-empty mt-3">دریافتی ثبت نشده است.</p>
+        } @else {
+          <ul class="mt-3 space-y-2">
+            @for (row of d.receiptsByType; track row.id) {
+              <li class="flex items-center justify-between gap-3 border-b border-slate-100 py-2 last:border-0">
+                <span class="text-sm text-slate-700">{{ row.name }}</span>
+                <span class="ui-money font-semibold text-emerald-700">{{ formatMoney(row.amount) }}</span>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+      <div class="ui-card">
+        <h2 class="text-base font-bold text-slate-900">تفکیک پرداخت (تومان)</h2>
+        @if (!d.paymentsByCategory.length) {
+          <p class="ui-empty mt-3">پرداختی ثبت نشده است.</p>
+        } @else {
+          <ul class="mt-3 space-y-2">
+            @for (row of d.paymentsByCategory; track row.id) {
+              <li class="flex items-center justify-between gap-3 border-b border-slate-100 py-2 last:border-0">
+                <span class="text-sm text-slate-700">{{ row.name }}</span>
+                <span class="ui-money font-semibold text-rose-700">{{ formatMoney(row.amount) }}</span>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+    </div>
+
+    <div class="ui-card overflow-hidden p-0">
+      <div class="border-b border-slate-100 px-4 py-3">
+        <h2 class="text-base font-bold text-slate-900">روند ماهانه</h2>
+        <p class="ui-muted mt-1">تراز تجمعی تا پایان هر ماه</p>
+      </div>
+      @if (!d.months.length) {
+        <p class="ui-empty p-4">برای این سال مالی ماهی تعریف نشده است.</p>
+      } @else {
+        <div class="ui-cards p-4 md:hidden">
+          @for (row of d.months; track row.title) {
+            <article class="rounded-2xl border border-slate-200 p-3">
+              <p class="font-semibold text-slate-900">{{ row.title }}</p>
+              <div class="mt-2 grid grid-cols-2 gap-2 text-sm">
+                <p class="text-slate-500">دریافت (تومان)</p>
+                <p class="ui-money text-end text-emerald-700">{{ formatMoney(row.receipts) }}</p>
+                <p class="text-slate-500">پرداخت (تومان)</p>
+                <p class="ui-money text-end text-rose-700">{{ formatMoney(row.payments) }}</p>
+                <p class="text-slate-500">تراز ماه (تومان)</p>
+                <p class="ui-money text-end font-semibold" [class.text-emerald-700]="row.balance >= 0" [class.text-rose-700]="row.balance < 0">{{ formatMoney(row.balance) }}</p>
+                <p class="text-slate-500">تراز تجمعی (تومان)</p>
+                <p class="ui-money text-end font-semibold" [class.text-emerald-700]="row.cumulative >= 0" [class.text-rose-700]="row.cumulative < 0">{{ formatMoney(row.cumulative) }}</p>
+              </div>
+            </article>
+          }
+        </div>
+        <div class="ui-table-wrap ui-table-desktop">
+          <table class="ui-table">
+            <thead>
+              <tr>
+                <th>ماه</th>
+                <th>دریافت (تومان)</th>
+                <th>پرداخت (تومان)</th>
+                <th>تراز ماه (تومان)</th>
+                <th>تراز تجمعی (تومان)</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of d.months; track row.title) {
+                <tr>
+                  <td class="font-semibold">{{ row.title }}</td>
+                  <td class="ui-money text-emerald-700">{{ formatMoney(row.receipts) }}</td>
+                  <td class="ui-money text-rose-700">{{ formatMoney(row.payments) }}</td>
+                  <td class="ui-money font-semibold" [class.text-emerald-700]="row.balance >= 0" [class.text-rose-700]="row.balance < 0">{{ formatMoney(row.balance) }}</td>
+                  <td class="ui-money font-semibold" [class.text-emerald-700]="row.cumulative >= 0" [class.text-rose-700]="row.cumulative < 0">{{ formatMoney(row.cumulative) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  }
+</section>

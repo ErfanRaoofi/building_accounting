@@ -22,15 +22,15 @@
   } @else if (data(); as d) {
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <div class="ui-card">
-        <p class="ui-muted">بدهی ماه‌ها</p>
+        <p class="ui-muted">بدهی ماه‌ها (تومان)</p>
         <p class="mt-1 ui-money text-xl font-bold">{{ formatMoney(d.totals.remaining) }}</p>
       </div>
       <div class="ui-card">
-        <p class="ui-muted">بستانکاری شارژ</p>
+        <p class="ui-muted">بستانکاری شارژ (تومان)</p>
         <p class="mt-1 ui-money text-xl font-bold text-emerald-700">{{ formatMoney(d.totals.chargeCredit) }}</p>
       </div>
       <div class="ui-card">
-        <p class="ui-muted">مانده خالص</p>
+        <p class="ui-muted">مانده خالص (تومان)</p>
         <p
           class="mt-1 ui-money text-xl font-bold"
           [class.text-rose-700]="d.totals.net > 0"
@@ -41,11 +41,11 @@
       </div>
       @if (!isResidentPortal()) {
         <div class="ui-card">
-          <p class="ui-muted">شارژ صادرشده</p>
+          <p class="ui-muted">شارژ صادرشده (تومان)</p>
           <p class="mt-1 ui-money text-xl font-bold">{{ formatMoney(d.totals.debit) }}</p>
         </div>
         <div class="ui-card">
-          <p class="ui-muted">دریافت‌ها</p>
+          <p class="ui-muted">دریافت‌ها (تومان)</p>
           <p class="mt-1 ui-money text-xl font-bold text-emerald-700">{{ formatMoney(d.totals.credit) }}</p>
         </div>
       }
@@ -92,7 +92,7 @@
                     }
                   </div>
                   <div class="flex shrink-0 flex-col items-end gap-1">
-                    <p class="ui-money font-semibold">{{ formatMoney(row.amount) }}</p>
+                    <p class="ui-money font-semibold">{{ formatMoneyToman(row.amount) }}</p>
                     <span [class]="requestStatusClass(row.status)">{{ requestStatusLabel(row.status) }}</span>
                   </div>
                 </div>
@@ -133,11 +133,11 @@
             }
             <div class="grid grid-cols-2 gap-2 text-sm">
               <div>
-                <p class="text-slate-500">شارژ ماه</p>
+                <p class="text-slate-500">شارژ ماه (تومان)</p>
                 <p class="ui-money font-semibold">{{ formatMoney(row.amount) }}</p>
               </div>
               <div>
-                <p class="text-slate-500">مانده</p>
+                <p class="text-slate-500">مانده (تومان)</p>
                 <p class="ui-money font-semibold">{{ formatMoney(row.remaining) }}</p>
               </div>
             </div>
@@ -155,7 +155,7 @@
             } @else {
               <div class="grid grid-cols-2 gap-2 text-sm">
                 <div>
-                  <p class="text-slate-500">پرداخت‌شده</p>
+                  <p class="text-slate-500">پرداخت‌شده (تومان)</p>
                   <p class="ui-money font-semibold text-emerald-700">{{ formatMoney(row.paidAmount) }}</p>
                 </div>
               </div>
@@ -169,9 +169,9 @@
             <thead>
               <tr>
                 <th>ماه</th>
-                <th>مبلغ</th>
+                <th>مبلغ (تومان)</th>
                 <th>دریافت (ریال)</th>
-                <th>مانده</th>
+                <th>مانده (تومان)</th>
                 <th>وضعیت</th>
                 <th>سکونت ماه</th>
               </tr>
@@ -217,9 +217,9 @@
             <thead>
               <tr>
                 <th>ماه</th>
-                <th>شارژ</th>
-                <th>پرداخت‌شده</th>
-                <th>مانده</th>
+                <th>شارژ (تومان)</th>
+                <th>پرداخت‌شده (تومان)</th>
+                <th>مانده (تومان)</th>
                 <th>وضعیت</th>
               </tr>
             </thead>
@@ -262,7 +262,7 @@
                   <p class="font-bold">{{ formatJalali(pay.date) }}</p>
                   <p class="ui-muted">{{ pay.receiptType?.name || row.receiptType?.name || '—' }} · {{ methodLabel(pay.paymentMethod) }}</p>
                 </div>
-                <p class="ui-money font-semibold">{{ formatMoney(pay.amount) }}</p>
+                <p class="ui-money font-semibold">{{ formatMoneyToman(pay.amount) }}</p>
               </article>
             }
           } @else {
@@ -274,7 +274,7 @@
                   <p class="ui-muted">{{ row.payments.length }} پرداخت روی همین سند</p>
                 }
               </div>
-              <p class="ui-money font-semibold">{{ formatMoney(row.totalAmount) }}</p>
+              <p class="ui-money font-semibold">{{ formatMoneyToman(row.totalAmount) }}</p>
             </article>
           }
         }
@@ -287,7 +287,7 @@
                 <th>شماره</th>
                 <th>تاریخ</th>
                 <th>نوع</th>
-                <th>مبلغ</th>
+                <th>مبلغ (تومان)</th>
               </tr>
             </thead>
             <tbody>
@@ -315,7 +315,7 @@
                 <th>تاریخ</th>
                 <th>نوع</th>
                 <th>روش</th>
-                <th>مبلغ</th>
+                <th>مبلغ (تومان)</th>
               </tr>
             </thead>
             <tbody>

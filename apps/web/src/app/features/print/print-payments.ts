@@ -1,7 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { ContextService } from '../../core/context.service';
-import { formatJalali, formatMoney } from '../../core/jalali';
+import { formatJalali, formatMoney, formatMoneyToman } from '../../core/jalali';
 import { ALL_QUERY } from '../../core/pagination';
 import { withBusy } from '../../core/with-busy';
 import { Skeleton } from '../../shared/skeleton';
@@ -18,6 +18,7 @@ export class PrintPayments {
   data = signal<any>(null);
   loading = signal(true);
   formatMoney = formatMoney;
+  formatMoneyToman = formatMoneyToman;
   formatJalali = formatJalali;
   today = formatJalali(new Date());
   print() {

@@ -44,11 +44,11 @@
         <p class="mt-1 text-2xl font-bold">{{ d.summary.units }}</p>
       </div>
       <div class="ui-card">
-        <p class="ui-muted">مانده بدهی</p>
+        <p class="ui-muted">مانده بدهی (تومان)</p>
         <p class="mt-1 ui-money text-2xl font-bold">{{ formatMoney(d.summary.remaining) }}</p>
       </div>
       <div class="ui-card">
-        <p class="ui-muted">بستانکاری</p>
+        <p class="ui-muted">بستانکاری (تومان)</p>
         <p class="mt-1 ui-money text-2xl font-bold text-emerald-700">{{ formatMoney(d.summary.credit || 0) }}</p>
       </div>
     </div>
@@ -65,7 +65,7 @@
               @for (m of shownMonths(d); track m.title) {
                 <th>{{ m.title }}</th>
               }
-              <th>مانده</th>
+              <th>مانده (تومان)</th>
             </tr>
           </thead>
           <tbody>

@@ -51,9 +51,9 @@
             </div>
           </div>
           <div class="flex flex-col items-end gap-2">
-            <p class="ui-money font-semibold">{{ formatMoney(row.amount) }}</p>
+            <p class="ui-money font-semibold">{{ formatMoneyToman(row.amount) }}</p>
             @if (row.balance != null) {
-              <p class="ui-muted">مانده {{ formatMoney(row.balance) }}</p>
+              <p class="ui-muted">مانده {{ formatMoneyToman(row.balance) }}</p>
             }
             <div class="flex gap-2">
               <button class="ui-btn-ghost h-9 px-3" type="button" (click)="openEdit(row)">ویرایش</button>
@@ -71,8 +71,8 @@
             <th>نوع</th>
             <th>شرح</th>
             <th>سرفصل</th>
-            <th>برداشت</th>
-            <th>مانده</th>
+            <th>برداشت (تومان)</th>
+            <th>مانده (تومان)</th>
             <th>پیگیری</th>
             <th>سند</th>
             <th></th>

@@ -92,9 +92,15 @@ export function isoDate(date: Date) {
   return `${y}-${m}-${d}`;
 }
 
+/** مبلغ به تومان (فقط عدد؛ واحد را در هدر/برچسب بنویسید) */
 export function formatMoney(value: number | null | undefined) {
   const toman = Math.round(Number(value || 0) / 10);
   return new Intl.NumberFormat('fa-IR').format(toman);
+}
+
+/** برای کارت‌ها و متن‌های بدون هدر ستون */
+export function formatMoneyToman(value: number | null | undefined) {
+  return `${formatMoney(value)} تومان`;
 }
 
 export function compactMoney(value: number | null | undefined) {

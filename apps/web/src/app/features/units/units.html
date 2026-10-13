@@ -26,6 +26,9 @@
             <div>
               <p class="text-lg font-bold text-slate-900">واحد {{ row.number }}</p>
               <p class="ui-muted">{{ row.ownerName || 'بدون مالک' }}</p>
+              @if (row.phone) {
+                <p class="ui-muted" dir="ltr">{{ row.phone }}</p>
+              }
             </div>
             <span [class]="row.occupancy === 'VACANT' ? 'ui-chip-muted' : 'ui-chip-paid'">
               {{ row.occupancy === 'VACANT' ? 'خالی' : 'ساکن' }}
@@ -33,7 +36,7 @@
           </div>
           <div class="flex items-center justify-between text-sm">
             <span class="text-slate-500">{{ row.tariff?.name || 'بدون تعرفه' }}</span>
-            <span class="ui-money font-semibold">{{ formatMoney(row.monthlyCharge) }}</span>
+            <span class="ui-money font-semibold">{{ formatMoneyToman(row.monthlyCharge) }}</span>
           </div>
           <div class="flex flex-wrap gap-2">
             @if (auth.isStaff()) {
@@ -52,9 +55,10 @@
           <tr>
             <th>واحد</th>
             <th>مالک</th>
+            <th>موبایل</th>
             <th>سکونت</th>
             <th>تعرفه</th>
-            <th>شارژ ماهانه</th>
+            <th>شارژ ماهانه (تومان)</th>
             <th></th>
           </tr>
         </thead>
@@ -63,6 +67,7 @@
             <tr>
               <td class="font-semibold">{{ row.number }}</td>
               <td>{{ row.ownerName || '-' }}</td>
+              <td dir="ltr">{{ row.phone || '—' }}</td>
               <td>
                 <span [class]="row.occupancy === 'VACANT' ? 'ui-chip-muted' : 'ui-chip-paid'">
                   {{ row.occupancy === 'VACANT' ? 'خالی' : 'ساکن' }}
@@ -136,7 +141,7 @@
           <select class="ui-input" formControlName="tariffId">
             <option value="">بدون تعرفه</option>
             @for (t of tariffs(); track t.id) {
-              <option [value]="t.id">{{ t.name }} ({{ formatMoney(t.monthlyAmount) }})</option>
+              <option [value]="t.id">{{ t.name }} ({{ formatMoneyToman(t.monthlyAmount) }})</option>
             }
           </select>
         </label>

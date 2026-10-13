@@ -36,11 +36,13 @@ export class Shell {
     if (this.auth.canSeeAccounting()) {
       items.push(
         { path: '/receipts', label: 'دریافت‌ها', icon: 'M7 4h10a2 2 0 0 1 2 2v14l-3-1.5L13 20l-3-1.5L7 20V6a2 2 0 0 1 2-2z' },
+        { path: '/receipt-payments', label: 'ریز دریافتی‌ها', icon: 'M4 6h16M4 10h16M4 14h10M4 18h8' },
         { path: '/payments', label: 'پرداخت‌ها', icon: 'M4 8h16v10H4zM4 11h16M8 15h5' },
       );
     }
     if (this.auth.canSeeReports()) {
       items.push(
+        { path: '/reports/balance', label: 'بیلان مالی', icon: 'M4 19h16M7 16V8M12 16V5M17 16v-5' },
         { path: '/reports/charges', label: 'گزارش شارژ', icon: 'M5 19V8M10 19V5M15 19v-7M20 19H4' },
         { path: '/reports/debtors', label: 'گزارش بدهکاران', icon: 'M4 7h16v12H4zM8 7V5h8v2M8 12h8M8 16h6' },
         { path: '/reports/payments', label: 'گزارش پرداخت', icon: 'M7 4h10v16H7zM10 8h4M10 12h4M10 16h3' },

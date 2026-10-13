@@ -37,4 +37,13 @@ export class ReportsController {
   ) {
     return this.reports.payments(user, buildingId, fiscalYearId, parsePagination(query), from, to, categoryId);
   }
+
+  @Get('balance')
+  balance(
+    @CurrentUser() user: AuthUser,
+    @Query('buildingId') buildingId: string,
+    @Query('fiscalYearId') fiscalYearId: string,
+  ) {
+    return this.reports.balance(user, buildingId, fiscalYearId);
+  }
 }

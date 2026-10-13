@@ -46,7 +46,7 @@
           <p class="mt-1 text-2xl font-bold text-rose-700">{{ d.summary.units }}</p>
         </div>
         <div class="ui-card">
-          <p class="ui-muted">مانده کل</p>
+          <p class="ui-muted">مانده کل (تومان)</p>
           <p class="mt-1 ui-money text-2xl font-bold">{{ formatMoney(d.summary.remaining) }}</p>
         </div>
       </div>
@@ -70,7 +70,7 @@
                   }
                 </div>
                 <div class="text-end">
-                  <p class="ui-money font-semibold text-rose-700">{{ formatMoney(row.remaining) }}</p>
+                  <p class="ui-money font-semibold text-rose-700">{{ formatMoneyToman(row.remaining) }}</p>
                   <p class="ui-muted">{{ row.unpaidCount }} ماه</p>
                 </div>
               </div>
@@ -82,7 +82,7 @@
                     [class.text-amber-900]="month.status === 'PARTIAL'"
                     [class.bg-rose-50]="month.status !== 'PARTIAL'"
                     [class.text-rose-800]="month.status !== 'PARTIAL'"
-                    [title]="month.title + ' · ' + formatMoney(month.remaining) + ' تومان'"
+                    [title]="month.title + ' · ' + formatMoneyToman(month.remaining)"
                   >
                     {{ monthChipLabel(month) }}
                     <span class="ui-money font-normal opacity-80">{{ compactMoney(month.remaining) }}</span>
@@ -101,7 +101,7 @@
                 <th>تلفن</th>
                 <th>ماه‌های بدهکار</th>
                 <th>تعداد</th>
-                <th>مانده</th>
+                <th>مانده (تومان)</th>
               </tr>
             </thead>
             <tbody>
@@ -126,7 +126,7 @@
                           [class.text-amber-900]="month.status === 'PARTIAL'"
                           [class.bg-rose-50]="month.status !== 'PARTIAL'"
                           [class.text-rose-800]="month.status !== 'PARTIAL'"
-                          [title]="month.title + ' · ' + formatMoney(month.remaining) + ' تومان'"
+                          [title]="month.title + ' · ' + formatMoneyToman(month.remaining)"
                         >
                           {{ monthChipLabel(month) }}
                           <span class="ui-money font-normal opacity-80">{{ compactMoney(month.remaining) }}</span>

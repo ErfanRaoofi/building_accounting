@@ -10,7 +10,7 @@
     <app-skeleton kind="stats" />
   } @else if (data(); as d) {
     <div class="ui-card">
-      <p class="ui-muted">جمع پرداخت‌ها</p>
+      <p class="ui-muted">جمع پرداخت‌ها (تومان)</p>
       <p class="mt-1 ui-money text-2xl font-bold">{{ formatMoney(d.total) }}</p>
     </div>
     @if (!d.count) {
@@ -24,7 +24,7 @@
               <p class="ui-muted">{{ formatJalali(row.date) }}@if (row.transactionTime) { · {{ row.transactionTime }} } · {{ row.categoryPath }}</p>
               <p class="text-sm text-slate-600">{{ row.description || row.payee || 'بدون شرح' }}</p>
             </div>
-            <p class="ui-money font-semibold">{{ formatMoney(row.amount) }}</p>
+            <p class="ui-money font-semibold">{{ formatMoneyToman(row.amount) }}</p>
           </article>
         }
       </div>
@@ -35,8 +35,8 @@
               <th>تاریخ</th>
               <th>شرح</th>
               <th>سرفصل</th>
-              <th>برداشت</th>
-              <th>مانده</th>
+              <th>برداشت (تومان)</th>
+              <th>مانده (تومان)</th>
               <th>پیگیری</th>
             </tr>
           </thead>

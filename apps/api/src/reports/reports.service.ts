@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { ReceiptKind } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AccessService } from '../common/access.service';
 import { AuthUser } from '../common/decorators/current-user.decorator';
@@ -96,6 +97,126 @@ export class ReportsService {
         remaining: allRows.reduce((s, r) => s + Math.max(r.net, 0), 0),
         credit: allRows.reduce((s, r) => s + r.credit, 0),
       },
+    };
+  }
+
+  async balance(user: AuthUser, buildingId: string, fiscalYearId: string) {
+    if (!buildingId || !fiscalYearId) {
+      throw new BadRequestException('buildingId و fiscalYearId الزامی است');
+    }
+    await this.access.assertRoles(user, buildingId, REPORT_ROLES);
+    const fy = await this.prisma.fiscalYear.findUnique({
+      where: { id: fiscalYearId },
+      include: { building: true },
+    });
+    if (!fy || fy.buildingId !== buildingId) {
+      throw new BadRequestException('سال مالی متعلق به این ساختمان نیست');
+    }
+
+    const [receiptGroups, paymentGroups, receiptRows, paymentRows] = await Promise.all([
+      this.prisma.receiptPayment.groupBy({
+        by: ['receiptTypeId'],
+        where: { receipt: { buildingId, fiscalYearId } },
+        _sum: { amount: true },
+      }),
+      this.prisma.payment.groupBy({
+        by: ['categoryId'],
+        where: { buildingId, fiscalYearId },
+        _sum: { amount: true },
+      }),
+      this.prisma.receiptPayment.findMany({
+        where: { receipt: { buildingId, fiscalYearId } },
+        select: { amount: true, date: true },
+      }),
+      this.prisma.payment.findMany({
+        where: { buildingId, fiscalYearId },
+        select: { amount: true, date: true },
+      }),
+    ]);
+
+    const receiptTypes = receiptGroups.length
+      ? await this.prisma.receiptType.findMany({ where: { id: { in: receiptGroups.map((row) => row.receiptTypeId) } } })
+      : [];
+    const categories = paymentGroups.length
+      ? await this.prisma.expenseCategory.findMany({
+          where: { id: { in: paymentGroups.map((row) => row.categoryId) } },
+          include: { parent: true },
+        })
+      : [];
+    const receiptTypeById = new Map(receiptTypes.map((type) => [type.id, type]));
+    const categoryById = new Map(categories.map((category) => [category.id, category]));
+    const receiptRank = (kind?: ReceiptKind) => (kind === ReceiptKind.CHARGE ? 0 : kind === ReceiptKind.ENTRANCE ? 1 : 2);
+
+    const receiptsByType = receiptGroups
+      .map((row) => {
+        const type = receiptTypeById.get(row.receiptTypeId);
+        return {
+          id: row.receiptTypeId,
+          name: type?.name || 'سایر',
+          kind: type?.kind || ReceiptKind.OTHER,
+          amount: money(row._sum.amount || 0),
+        };
+      })
+      .filter((row) => row.amount > 0)
+      .sort((a, b) => receiptRank(a.kind) - receiptRank(b.kind) || a.name.localeCompare(b.name, 'fa'));
+
+    const paymentsByCategory = paymentGroups
+      .map((row) => {
+        const category = categoryById.get(row.categoryId);
+        const name = category?.parent ? `${category.parent.name} / ${category.name}` : category?.name || 'سایر';
+        return {
+          id: row.categoryId,
+          name,
+          amount: money(row._sum.amount || 0),
+        };
+      })
+      .filter((row) => row.amount > 0)
+      .sort((a, b) => a.name.localeCompare(b.name, 'fa'));
+
+    const receiptsTotal = receiptsByType.reduce((sum, row) => sum + row.amount, 0);
+    const paymentsTotal = paymentsByCategory.reduce((sum, row) => sum + row.amount, 0);
+
+    const months = monthsBetween(fy.startDate, fy.endDate);
+    const receiptMonth = new Map<string, number>();
+    for (const row of receiptRows) {
+      const j = toJalali(row.date);
+      const key = `${j.jy}-${j.jm}`;
+      receiptMonth.set(key, (receiptMonth.get(key) || 0) + money(row.amount));
+    }
+    const paymentMonth = new Map<string, number>();
+    for (const row of paymentRows) {
+      const j = toJalali(row.date);
+      const key = `${j.jy}-${j.jm}`;
+      paymentMonth.set(key, (paymentMonth.get(key) || 0) + money(row.amount));
+    }
+
+    let cumulative = 0;
+    const monthly = months.map((month) => {
+      const key = `${month.year}-${month.month}`;
+      const receipts = receiptMonth.get(key) || 0;
+      const payments = paymentMonth.get(key) || 0;
+      const balance = receipts - payments;
+      cumulative += balance;
+      return {
+        year: month.year,
+        month: month.month,
+        title: month.title,
+        receipts,
+        payments,
+        balance,
+        cumulative,
+      };
+    });
+
+    return {
+      building: fy.building,
+      fiscalYear: fy,
+      receiptsTotal,
+      paymentsTotal,
+      balance: receiptsTotal - paymentsTotal,
+      receiptsByType,
+      paymentsByCategory,
+      months: monthly,
     };
   }
 

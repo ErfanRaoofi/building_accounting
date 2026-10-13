@@ -14,7 +14,7 @@ type CalCell = { day: number | null; date: Date | null };
     <div class="relative">
       <input
         #el
-        class="ui-input pr-11"
+        class="ui-input pr-11 text-left"
         type="text"
         dir="ltr"
         autocomplete="off"

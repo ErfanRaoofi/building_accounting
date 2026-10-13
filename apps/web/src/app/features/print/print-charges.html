@@ -20,7 +20,7 @@
           @for (m of shownMonths(d); track m.title) {
             <th class="border border-slate-200 bg-slate-50 px-2 py-2">{{ m.title }}</th>
           }
-          <th class="border border-slate-200 bg-slate-50 px-2 py-2">مانده</th>
+          <th class="border border-slate-200 bg-slate-50 px-2 py-2">مانده (تومان)</th>
         </tr>
       </thead>
       <tbody>
@@ -52,6 +52,6 @@
         }
       </tbody>
     </table>
-    <p class="mt-4 font-semibold">تعداد واحد بدهکار تا {{ d.range?.to?.title }}: {{ d.summary.withDebt }} — مانده بدهی: {{ formatMoney(d.summary.remaining) }}@if (d.summary.credit) { — بستانکاری: {{ formatMoney(d.summary.credit) }} }</p>
+    <p class="mt-4 font-semibold">تعداد واحد بدهکار تا {{ d.range?.to?.title }}: {{ d.summary.withDebt }} — مانده بدهی: {{ formatMoneyToman(d.summary.remaining) }}@if (d.summary.credit) { — بستانکاری: {{ formatMoneyToman(d.summary.credit) }} }</p>
   }
 </div>
