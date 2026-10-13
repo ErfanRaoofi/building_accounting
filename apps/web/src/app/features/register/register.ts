@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import { Busy } from '../../shared/busy';
 import { GateFrame } from '../../shared/gate-frame';
 import { PasswordInput } from '../../shared/password-input';
+import { usernameValidators } from '../../core/username';
 
 type PublicBuilding = { id: string; name: string };
 
@@ -23,7 +24,7 @@ export class Register {
   buildings = signal<PublicBuilding[]>([]);
   form = this.fb.nonNullable.group({
     name: ['', [Validators.required, Validators.minLength(2)]],
-    email: ['', [Validators.required, Validators.email]],
+    username: ['', usernameValidators],
     password: ['', [Validators.required, Validators.minLength(6)]],
     buildingId: ['', Validators.required],
     requestedRole: ['RESIDENT' as 'MANAGER' | 'ACCOUNTANT' | 'BOARD' | 'RESIDENT', Validators.required],

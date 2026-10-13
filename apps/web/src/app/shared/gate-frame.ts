@@ -1,8 +1,10 @@
 import { Component, inject, input } from '@angular/core';
 import { AuthService } from '../core/auth.service';
+import { BrandMark } from './brand-mark';
 
 @Component({
   selector: 'app-gate-frame',
+  imports: [BrandMark],
   templateUrl: './gate-frame.html',
   host: { class: 'block h-full' },
 })

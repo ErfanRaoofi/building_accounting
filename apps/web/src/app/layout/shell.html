@@ -15,9 +15,12 @@
   >
     <div class="border-b border-white/10 px-5 py-6">
       <div class="flex items-center justify-between gap-3">
-        <div>
-          <p class="text-[11px] font-medium tracking-wide text-brand-200">سامانه حسابداری</p>
-          <h1 class="mt-1 text-lg font-bold text-white">حسابداری مهر</h1>
+        <div class="flex min-w-0 items-center gap-3">
+          <app-brand-mark [onDark]="true" />
+          <div class="min-w-0">
+            <p class="text-[11px] font-medium tracking-wide text-brand-200">سامانه حسابداری ساختمان</p>
+            <h1 class="mt-1 text-lg font-bold text-white">شارژبان</h1>
+          </div>
         </div>
         <button class="ui-btn-ghost h-9 w-9 border-white/10 bg-white/5 px-0 text-white lg:hidden" type="button" (click)="closeMenu()" aria-label="بستن">
           ✕
@@ -54,7 +57,7 @@
         </span>
         <div class="min-w-0">
           <p class="truncate text-sm font-semibold text-white">{{ auth.user()?.name }}</p>
-          <p class="truncate text-xs text-slate-400">{{ auth.user()?.email }}</p>
+          <p class="truncate text-xs text-slate-400">{{ auth.user()?.username }}</p>
         </div>
       </div>
       <button class="ui-btn-ghost w-full border-white/10 bg-white/5 text-slate-200 hover:bg-white/10" type="button" (click)="changeBuilding()">

@@ -2,7 +2,7 @@ import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 
 export type AuthUser = {
   id: string;
-  email: string;
+  username: string;
   name: string;
   isSuperAdmin: boolean;
 };

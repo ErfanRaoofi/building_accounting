@@ -5,19 +5,18 @@
 >
   <form class="ui-gate-panel mx-auto max-w-md" [formGroup]="form" (ngSubmit)="submit()">
     <label class="ui-field">
-      <span class="ui-label">ایمیل</span>
+      <span class="ui-label">نام کاربری</span>
       <input
         class="ui-input"
-        type="email"
-        formControlName="email"
+        type="text"
+        formControlName="username"
         autocomplete="username"
-        inputmode="email"
-        dir="ltr"
+        dir="auto"
         autofocus
-        [class.border-rose-300]="form.controls.email.touched && form.controls.email.invalid"
+        [class.border-rose-300]="form.controls.username.touched && form.controls.username.invalid"
       />
-      @if (form.controls.email.touched && form.controls.email.invalid) {
-        <span class="text-xs font-medium text-rose-600">یک ایمیل معتبر وارد کنید.</span>
+      @if (form.controls.username.touched && form.controls.username.invalid) {
+        <span class="text-xs font-medium text-rose-600">نام کاربری باید حداقل ۳ نویسه باشد: حرف، عدد، نقطه، خط یا @.</span>
       }
     </label>
     <label class="ui-field">

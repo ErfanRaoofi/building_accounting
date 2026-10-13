@@ -5,7 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthUser } from '../common/decorators/current-user.decorator';
 
-type JwtPayload = { sub: string; email: string };
+type JwtPayload = { sub: string };
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -25,6 +25,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     if (!user?.isActive) {
       throw new UnauthorizedException('ورود لازم است');
     }
-    return { id: user.id, email: user.email, name: user.name, isSuperAdmin: user.isSuperAdmin };
+    return { id: user.id, username: user.username, name: user.name, isSuperAdmin: user.isSuperAdmin };
   }
 }

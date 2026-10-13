@@ -1,4 +1,5 @@
-import { ArrayNotEmpty, IsArray, IsBoolean, IsEmail, IsIn, IsOptional, IsString, MinLength } from 'class-validator';
+import { ArrayNotEmpty, IsArray, IsBoolean, IsIn, IsOptional, IsString, MinLength } from 'class-validator';
+import { UsernameField } from '../common/username';
 
 export class CreateBuildingDto {
   @IsString()
@@ -44,8 +45,8 @@ export class UpdateBuildingDto {
 const BUILDING_ROLES = ['MANAGER', 'ACCOUNTANT', 'BOARD', 'RESIDENT'] as const;
 
 export class AddBuildingMemberDto {
-  @IsEmail()
-  email: string;
+  @UsernameField()
+  username: string;
 
   @IsOptional()
   @IsString()

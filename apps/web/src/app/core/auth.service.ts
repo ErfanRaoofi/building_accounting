@@ -6,7 +6,7 @@ import { Building, BuildingRole, ContextService } from './context.service';
 
 export type AuthUser = {
   id: string;
-  email: string;
+  username: string;
   name: string;
   isSuperAdmin: boolean;
 };
@@ -41,8 +41,8 @@ export class AuthService {
   canSeeAccounting = computed(() => this.isStaff());
   canSeeSettings = computed(() => this.isStaff());
 
-  login(email: string, password: string) {
-    return this.http.post<AuthSession>('/api/auth/login', { email, password }).pipe(
+  login(username: string, password: string) {
+    return this.http.post<AuthSession>('/api/auth/login', { username, password }).pipe(
       tap((res) => {
         this.persistSession(res);
         this.ctx.invalidate();
@@ -124,13 +124,14 @@ function readUser(): AuthUser | null {
     return null;
   }
   try {
-    const parsed = JSON.parse(raw) as AuthUser & { role?: string };
+    const parsed = JSON.parse(raw) as AuthUser & { role?: string; email?: string };
+    const username = parsed.username || parsed.email || '';
     if (typeof parsed.isSuperAdmin === 'boolean') {
-      return { id: parsed.id, email: parsed.email, name: parsed.name, isSuperAdmin: parsed.isSuperAdmin };
+      return { id: parsed.id, username, name: parsed.name, isSuperAdmin: parsed.isSuperAdmin };
     }
     return {
       id: parsed.id,
-      email: parsed.email,
+      username,
       name: parsed.name,
       isSuperAdmin: parsed.role === 'ADMIN',
     };

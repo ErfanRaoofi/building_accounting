@@ -18,13 +18,13 @@ export class AuthService {
   ) {}
 
   async login(dto: LoginDto) {
-    const user = await this.prisma.user.findUnique({ where: { email: dto.email.toLowerCase() } });
+    const user = await this.prisma.user.findUnique({ where: { username: dto.username } });
     if (!user || !user.isActive) {
-      throw new UnauthorizedException('ایمیل یا رمز عبور نادرست است');
+      throw new UnauthorizedException('نام کاربری یا رمز عبور نادرست است');
     }
     const ok = await compare(dto.password, user.passwordHash);
     if (!ok) {
-      throw new UnauthorizedException('ایمیل یا رمز عبور نادرست است');
+      throw new UnauthorizedException('نام کاربری یا رمز عبور نادرست است');
     }
     return this.issueSession(user);
   }
@@ -86,24 +86,24 @@ export class AuthService {
   }
 
   async register(dto: RegisterDto) {
-    const email = dto.email.toLowerCase();
-    const existing = await this.prisma.user.findUnique({ where: { email } });
+    const username = dto.username;
+    const existing = await this.prisma.user.findUnique({ where: { username } });
     if (existing?.isActive) {
-      throw new BadRequestException('این ایمیل قبلاً ثبت شده است. وارد شوید');
+      throw new BadRequestException('این نام کاربری قبلاً ثبت شده است. وارد شوید');
     }
     const building = await this.prisma.building.findUnique({ where: { id: dto.buildingId } });
     if (!building?.isActive) {
       throw new BadRequestException('ساختمان انتخاب‌شده معتبر نیست');
     }
     const pending = await this.prisma.signupRequest.findFirst({
-      where: { email, buildingId: dto.buildingId, status: SignupStatus.PENDING },
+      where: { username, buildingId: dto.buildingId, status: SignupStatus.PENDING },
     });
     if (pending) {
       throw new BadRequestException('درخواست قبلی برای این ساختمان در انتظار تأیید است');
     }
     await this.prisma.signupRequest.create({
       data: {
-        email,
+        username,
         name: dto.name.trim(),
         passwordHash: await hash(dto.password, 10),
         buildingId: dto.buildingId,
@@ -115,13 +115,13 @@ export class AuthService {
 
   private async issueSession(user: {
     id: string;
-    email: string;
+    username: string;
     name: string;
     isSuperAdmin: boolean;
   }) {
     const accessToken = await this.jwt.signAsync({
       sub: user.id,
-      email: user.email,
+      username: user.username,
     });
     const refreshToken = randomBytes(48).toString('base64url');
     const refreshTtl = this.config.get<string>('JWT_REFRESH_EXPIRES_IN') || '30d';
@@ -140,8 +140,8 @@ export class AuthService {
     };
   }
 
-  private toUser(user: { id: string; email: string; name: string; isSuperAdmin: boolean }) {
-    return { id: user.id, email: user.email, name: user.name, isSuperAdmin: user.isSuperAdmin };
+  private toUser(user: { id: string; username: string; name: string; isSuperAdmin: boolean }) {
+    return { id: user.id, username: user.username, name: user.name, isSuperAdmin: user.isSuperAdmin };
   }
 
   private async buildingsFor(userId: string, isSuperAdmin: boolean) {

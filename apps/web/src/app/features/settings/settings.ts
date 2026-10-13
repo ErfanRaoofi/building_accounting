@@ -17,6 +17,7 @@ import { IconAction } from '../../shared/icon-action';
 import { PasswordInput } from '../../shared/password-input';
 import { LogoCropper } from '../../shared/logo-cropper';
 import { BuildingLogo } from '../../shared/building-logo';
+import { usernameValidators } from '../../core/username';
 
 @Component({
   selector: 'app-settings',
@@ -102,7 +103,7 @@ export class Settings {
     parentId: [''],
   });
   memberForm = this.fb.nonNullable.group({
-    email: ['', [Validators.required, Validators.email]],
+    username: ['', usernameValidators],
     name: [''],
     password: [''],
   });
@@ -291,7 +292,7 @@ export class Settings {
 
   openMember() {
     this.editingMemberId.set(null);
-    this.memberForm.reset({ email: '', name: '', password: '' });
+    this.memberForm.reset({ username: '', name: '', password: '' });
     this.memberRoles.set(this.auth.isAdmin() ? ['MANAGER'] : ['ACCOUNTANT']);
     this.memberUnitIds.set([]);
     this.memberOpen.set(true);
@@ -299,7 +300,7 @@ export class Settings {
 
   openEditMember(row: any) {
     this.editingMemberId.set(row.id);
-    this.memberForm.reset({ email: row.email, name: row.name, password: '' });
+    this.memberForm.reset({ username: row.username, name: row.name, password: '' });
     this.memberRoles.set([...(row.roles || [])]);
     this.memberUnitIds.set((row.units || []).map((unit: { id: string }) => unit.id));
     this.memberOpen.set(true);
@@ -339,7 +340,7 @@ export class Settings {
     const body = memberId
       ? { roles, unitIds: this.memberUnitIds() }
       : {
-          email: value.email,
+          username: value.username,
           name: value.name || undefined,
           password: value.password || undefined,
           roles,

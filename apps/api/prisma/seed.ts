@@ -22,10 +22,10 @@ async function ensureCategory(buildingId: string, name: string, parentId?: strin
 async function main() {
   const passwordHash = await hash('Admin123!', 10);
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@mehr.local' },
+    where: { username: 'e.raoofi' },
     update: { isSuperAdmin: true, name: 'مدیر سیستم' },
     create: {
-      email: 'admin@mehr.local',
+      username: 'e.raoofi',
       passwordHash,
       name: 'مدیر سیستم',
       isSuperAdmin: true,
@@ -118,7 +118,7 @@ async function main() {
   });
 
   console.log('Seed OK');
-  console.log('Login: admin@mehr.local / Admin123!');
+  console.log('Login username: e.raoofi');
   console.log(`Building: ${building.name} / Fiscal year: ${fiscal.title}`);
 }
 

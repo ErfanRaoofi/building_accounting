@@ -3,11 +3,12 @@ import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/rou
 import { AuthService } from '../core/auth.service';
 import { ContextService } from '../core/context.service';
 
+import { BrandMark } from '../shared/brand-mark';
 import { BuildingLogo } from '../shared/building-logo';
 
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, BuildingLogo],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, BrandMark, BuildingLogo],
   templateUrl: './shell.html',
   host: {
     class: 'block h-dvh overflow-hidden',

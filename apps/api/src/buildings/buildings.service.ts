@@ -99,7 +99,7 @@ export class BuildingsService {
             user: {
               select: {
                 id: true,
-                email: true,
+                username: true,
                 name: true,
                 isActive: true,
                 isSuperAdmin: true,
@@ -120,7 +120,7 @@ export class BuildingsService {
             user: {
               select: {
                 id: true,
-                email: true,
+                username: true,
                 name: true,
                 isActive: true,
                 isSuperAdmin: true,
@@ -137,15 +137,15 @@ export class BuildingsService {
 
   async addMember(user: AuthUser, buildingId: string, dto: AddBuildingMemberDto) {
     const roles = await this.assertAssignable(user, buildingId, dto.roles as BuildingRole[]);
-    const email = dto.email.toLowerCase();
-    let member = await this.prisma.user.findUnique({ where: { email } });
+    const username = dto.username;
+    let member = await this.prisma.user.findUnique({ where: { username } });
     if (!member) {
       if (!dto.name || !dto.password) {
         throw new BadRequestException('برای کاربر جدید نام و رمز عبور لازم است');
       }
       member = await this.prisma.user.create({
         data: {
-          email,
+          username,
           name: dto.name,
           passwordHash: await hash(dto.password, 10),
         },
@@ -303,7 +303,7 @@ export class BuildingsService {
         user: {
           select: {
             id: true,
-            email: true,
+            username: true,
             name: true,
             isActive: true,
             isSuperAdmin: true,
@@ -322,7 +322,7 @@ export class BuildingsService {
     roles: BuildingRole[];
     user: {
       id: string;
-      email: string;
+      username: string;
       name: string;
       isActive: boolean;
       isSuperAdmin: boolean;
@@ -331,7 +331,7 @@ export class BuildingsService {
   }) {
     return {
       id: row.user.id,
-      email: row.user.email,
+      username: row.user.username,
       name: row.user.name,
       isActive: row.user.isActive,
       isSuperAdmin: row.user.isSuperAdmin,

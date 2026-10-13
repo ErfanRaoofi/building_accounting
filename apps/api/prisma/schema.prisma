@@ -76,7 +76,7 @@ enum PaymentRequestStatus {
 
 model User {
   id               String           @id @default(uuid())
-  email            String           @unique
+  username         String           @unique
   passwordHash     String
   name             String
   isSuperAdmin     Boolean          @default(false)
@@ -151,7 +151,7 @@ model UnitResident {
 
 model SignupRequest {
   id            String       @id @default(uuid())
-  email         String
+  username      String
   name          String
   passwordHash  String
   buildingId    String
@@ -165,7 +165,7 @@ model SignupRequest {
   reviewedBy    User?        @relation("SignupReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
 
   @@index([status, buildingId])
-  @@index([email, buildingId])
+  @@index([username, buildingId])
 }
 
 model FiscalYear {

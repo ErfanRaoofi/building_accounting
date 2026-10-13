@@ -513,8 +513,41 @@
     @apply flex items-center gap-3;
   }
 
-  .ui-gate-mark {
-    @apply flex h-12 w-12 items-center justify-center rounded-2xl bg-ink-950 text-lg font-bold text-white shadow-lg shadow-slate-900/20;
+  .brand-seal {
+    @apply h-full w-full;
+    color: var(--color-ink-950);
+  }
+
+  .brand-seal .seal-field {
+    fill: currentColor;
+  }
+
+  .brand-seal .seal-ring {
+    stroke: var(--color-brand-700);
+  }
+
+  .brand-seal .seal-tick {
+    fill: #5eead4;
+  }
+
+  .brand-seal .seal-letter {
+    fill: #fff;
+  }
+
+  .brand-seal-on-dark {
+    color: #fff;
+  }
+
+  .brand-seal-on-dark .seal-ring {
+    stroke: var(--color-brand-600);
+  }
+
+  .brand-seal-on-dark .seal-tick {
+    fill: var(--color-brand-600);
+  }
+
+  .brand-seal-on-dark .seal-letter {
+    fill: var(--color-ink-950);
   }
 
   .ui-gate-kicker {

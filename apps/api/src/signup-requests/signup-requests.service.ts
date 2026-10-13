@@ -62,11 +62,11 @@ export class SignupRequestsService {
     if (request.requestedRole === BuildingRole.RESIDENT && !dto.unitIds?.length) {
       throw new BadRequestException('برای نقش ساکن حداقل یک واحد انتخاب کنید');
     }
-    let member = await this.prisma.user.findUnique({ where: { email: request.email } });
+    let member = await this.prisma.user.findUnique({ where: { username: request.username } });
     if (!member) {
       member = await this.prisma.user.create({
         data: {
-          email: request.email,
+          username: request.username,
           name: request.name,
           passwordHash: request.passwordHash,
         },
@@ -159,7 +159,7 @@ export class SignupRequestsService {
 
   private map(row: {
     id: string;
-    email: string;
+    username: string;
     name: string;
     buildingId: string;
     requestedRole: BuildingRole;
@@ -172,7 +172,7 @@ export class SignupRequestsService {
   }) {
     return {
       id: row.id,
-      email: row.email,
+      username: row.username,
       name: row.name,
       buildingId: row.buildingId,
       requestedRole: row.requestedRole,

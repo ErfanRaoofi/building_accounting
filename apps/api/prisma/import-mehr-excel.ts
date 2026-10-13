@@ -79,9 +79,9 @@ async function main() {
 
   const passwordHash = await hash('Admin123!', 10);
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@mehr.local' },
-    update: { passwordHash, name: 'مدیر سیستم', isSuperAdmin: true, isActive: true },
-    create: { email: 'admin@mehr.local', passwordHash, name: 'مدیر سیستم', isSuperAdmin: true },
+    where: { username: 'e.raoofi' },
+    update: { name: 'مدیر سیستم', isSuperAdmin: true, isActive: true },
+    create: { username: 'e.raoofi', passwordHash, name: 'مدیر سیستم', isSuperAdmin: true },
   });
 
   const existingBuilding =
