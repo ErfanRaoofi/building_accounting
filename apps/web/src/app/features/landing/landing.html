@@ -1,0 +1,361 @@
+<div class="lp">
+  <header class="lp-header">
+    <div class="lp-header-inner">
+      <a class="lp-brand" href="#top" (click)="scrollTo('top'); $event.preventDefault()">
+        <app-brand-mark [onDark]="true" class="h-10 w-10" />
+        <span>شارژبان</span>
+      </a>
+
+      <nav class="lp-nav hidden md:flex" aria-label="ناوبری صفحه">
+        <button type="button" (click)="scrollTo('features')">قابلیت‌ها</button>
+        <button type="button" (click)="scrollTo('plans')">پلن‌ها</button>
+        <button type="button" (click)="scrollTo('inquiry')">درخواست خرید</button>
+      </nav>
+
+      <div class="flex items-center gap-2">
+        @if (auth.isLoggedIn()) {
+          <a class="ui-btn-primary h-10 px-4" routerLink="/select-building">ورود به پنل</a>
+        } @else {
+          <a class="lp-login hidden sm:inline-flex" routerLink="/login">ورود</a>
+          <button class="ui-btn-primary h-10 px-4" type="button" (click)="scrollTo('inquiry')">شروع کنید</button>
+        }
+        <button
+          class="ui-btn-ghost h-10 w-10 border-white/15 bg-white/5 px-0 text-white md:hidden"
+          type="button"
+          (click)="menuOpen.set(!menuOpen())"
+          aria-label="منو"
+        >
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    @if (menuOpen()) {
+      <div class="lp-mobile-menu md:hidden">
+        <button type="button" (click)="scrollTo('features')">قابلیت‌ها</button>
+        <button type="button" (click)="scrollTo('plans')">پلن‌ها</button>
+        <button type="button" (click)="scrollTo('inquiry')">درخواست خرید</button>
+        @if (!auth.isLoggedIn()) {
+          <a routerLink="/login" (click)="closeMenu()">ورود به سامانه</a>
+        }
+      </div>
+    }
+  </header>
+
+  <main id="top" class="lp-main">
+    <section class="lp-hero">
+      <div class="lp-shell lp-hero-grid">
+        <div class="lp-hero-copy lp-rise">
+          <p class="lp-kicker">سامانه حسابداری ساختمان</p>
+          <h1 class="lp-hero-brand">شارژبان</h1>
+          <p class="lp-hero-lead">حسابداری شارژ ساختمان، دقیق و مرتب</p>
+          <p class="lp-hero-sub">
+            شارژ، دریافت، پرداخت و بیلان مالی را برای مدیران و حسابداران ساختمان در یک فضای آرام و مرتب نگه دارید.
+          </p>
+          <div class="lp-hero-actions">
+            <button class="ui-btn-primary h-12 px-6 text-base" type="button" (click)="scrollTo('plans')">دیدن پلن‌ها</button>
+            <button class="lp-btn-ghost" type="button" (click)="scrollTo('inquiry')">درخواست خرید</button>
+          </div>
+        </div>
+
+        <div class="lp-hero-visual lp-rise-delay" aria-hidden="true">
+          <div class="lp-mock">
+            <div class="lp-mock-top">
+              <span></span><span></span><span></span>
+              <strong>داشبورد ساختمان مهر</strong>
+            </div>
+            <div class="lp-mock-grid">
+              <div class="lp-mock-stat">
+                <em>وصولی ماه</em>
+                <b>۴۸٫۲ م</b>
+              </div>
+              <div class="lp-mock-stat">
+                <em>بدهکاران</em>
+                <b>۱۲ واحد</b>
+              </div>
+              <div class="lp-mock-chart">
+                <div style="--h: 42%"></div>
+                <div style="--h: 68%"></div>
+                <div style="--h: 54%"></div>
+                <div style="--h: 86%"></div>
+                <div style="--h: 72%"></div>
+                <div style="--h: 94%"></div>
+              </div>
+              <div class="lp-mock-list">
+                <p>بیلان مالی ۱۴۰۴</p>
+                <p>گزارش بدهکاران فروردین</p>
+                <p>دریافت واحد ۱۲ · کارت</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="lp-trust" aria-label="چرا شارژبان">
+      <div class="lp-shell lp-trust-row">
+        <article>
+          <span class="lp-trust-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 21V8l8-5 8 5v13M9 21v-7h6v7M4 21h16" />
+            </svg>
+          </span>
+          <div>
+            <h2>چند ساختمان، یک ورود</h2>
+            <p>شارژ ساختمان‌های مختلف را جدا نگه دارید و از همان حساب جابه‌جا شوید.</p>
+          </div>
+        </article>
+        <article>
+          <span class="lp-trust-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 19v-1a3 3 0 0 0-3-3H7a3 3 0 0 0-3 3v1M10 12a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM20 19v-1a3 3 0 0 0-2.2-2.9M16.5 6.1a3 3 0 0 1 0 5.8" />
+            </svg>
+          </span>
+          <div>
+            <h2>هر کس کار خودش را می‌بیند</h2>
+            <p>مدیر و حسابدار امور مالی را می‌بینند و ساکن فقط وضعیت واحد خودش را.</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="features" class="lp-section lp-features-wrap">
+      <div class="lp-shell">
+        <div class="lp-section-head lp-section-head-center">
+          <h2>هر چیزی که برای مدیریت شارژ لازم است</h2>
+          <p>از تعریف واحد تا چاپ بیلان، مسیر کار حسابداری ساختمان یک‌جا جمع شده است.</p>
+        </div>
+        <div class="lp-features">
+          <article class="lp-feature">
+            <span class="lp-feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 19V8M10 19V5M15 19v-7M20 19H4" />
+              </svg>
+            </span>
+            <h3>شارژ و تعرفه</h3>
+            <p>تعرفه را بر اساس متراژ، نفر یا مبلغ ثابت بگذارید و شارژ ماهانه بسازید.</p>
+          </article>
+          <article class="lp-feature">
+            <span class="lp-feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 8h16v10H4zM4 11h16M8 15h5" />
+              </svg>
+            </span>
+            <h3>دریافت و پرداخت</h3>
+            <p>شارژ، ورودیه و هزینه‌ها را ثبت کنید تا مسیر پول ساختمان روشن بماند.</p>
+          </article>
+          <article class="lp-feature">
+            <span class="lp-feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 19h16M7 16V8M12 16V5M17 16v-5" />
+              </svg>
+            </span>
+            <h3>بیلان و بدهکاران</h3>
+            <p>وضعیت مالی و فهرست بدهکاران را برای هیئت‌مدیره و مجمع آماده کنید.</p>
+          </article>
+          <article class="lp-feature">
+            <span class="lp-feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M7 4h10a2 2 0 0 1 2 2v14l-3-1.5L13 20l-3-1.5L7 20V6a2 2 0 0 1 2-2z" />
+              </svg>
+            </span>
+            <h3>دفتر واحد</h3>
+            <p>سابقه شارژ و دریافت هر واحد در یک دفتر مرتب و قابل پیگیری می‌ماند.</p>
+          </article>
+          <article class="lp-feature">
+            <span class="lp-feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M7 3v3M17 3v3M4 9h16M6 5h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z" />
+              </svg>
+            </span>
+            <h3>سال مالی</h3>
+            <p>هر سال مالی جدا می‌ماند تا گزارش‌ها دقیق و قابل مقایسه باشند.</p>
+          </article>
+          <article class="lp-feature">
+            <span class="lp-feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M7 4h10v16H7zM10 8h4M10 12h4M6 20h12" />
+              </svg>
+            </span>
+            <h3>چاپ و بک‌آپ</h3>
+            <p>گزارش چاپی آماده و نسخه پشتیبان، برای وقتی که باید سند تحویل دهید.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="lp-section lp-steps-wrap">
+      <div class="lp-shell">
+        <div class="lp-section-head lp-section-head-center">
+          <h2>شروع در سه گام</h2>
+          <p>از ساختن ساختمان تا چاپ گزارش، مسیر کار مشخص است.</p>
+        </div>
+        <ol class="lp-steps">
+          <li>
+            <span>۱</span>
+            <h3>ساختمان و واحد</h3>
+            <p>ساختمان را بسازید، واحدها را وارد کنید و نقش هر نفر را مشخص کنید.</p>
+          </li>
+          <li>
+            <span>۲</span>
+            <h3>شارژ و دریافت</h3>
+            <p>تعرفه بگذارید، شارژ ماه را بسازید و دریافتی هر واحد را ثبت کنید.</p>
+          </li>
+          <li>
+            <span>۳</span>
+            <h3>گزارش و چاپ</h3>
+            <p>بیلان، بدهکاران و پرداخت‌ها را ببینید و برای مجمع چاپ کنید.</p>
+          </li>
+        </ol>
+      </div>
+    </section>
+
+    <section id="plans" class="lp-section">
+      <div class="lp-shell">
+        <div class="lp-section-head">
+          <h2>پلنی که با اندازه ساختمان‌تان جور باشد</h2>
+          <p>قیمت‌ها نمونه هستند؛ بعد از درخواست خرید، جزئیات را با شما هماهنگ می‌کنیم.</p>
+        </div>
+        <div class="lp-plans">
+          @for (plan of plans; track plan.id) {
+            <article class="lp-plan" [class.is-featured]="plan.featured">
+              @if (plan.featured) {
+                <p class="lp-plan-badge">پیشنهادی</p>
+              }
+              <h3>{{ plan.label }}</h3>
+              <p class="lp-plan-desc">{{ plan.description }}</p>
+              <p class="lp-plan-price">
+                <strong>{{ plan.priceLabel }}</strong>
+                <span>{{ plan.periodLabel }}</span>
+              </p>
+              <ul>
+                @for (item of plan.features; track item) {
+                  <li>{{ item }}</li>
+                }
+              </ul>
+              <button
+                class="h-11 w-full"
+                [class.ui-btn-primary]="plan.featured"
+                [class.ui-btn-ghost]="!plan.featured"
+                type="button"
+                (click)="choosePlan(plan.id)"
+              >
+                انتخاب {{ plan.label }}
+              </button>
+            </article>
+          }
+        </div>
+      </div>
+    </section>
+
+    <section id="inquiry" class="lp-section">
+      <div class="lp-shell">
+        <div class="lp-inquiry">
+          <div class="lp-inquiry-copy">
+            <h2>درخواست خرید</h2>
+            <p>نام و شماره تماس را بگذارید تا برای فعال‌سازی پلن انتخابی با شما هماهنگ کنیم.</p>
+          </div>
+
+          @if (done()) {
+            <div class="lp-success" role="status">
+              <h3>درخواست شما ثبت شد</h3>
+              <p>به‌زودی برای هماهنگی پلن «{{ selectedPlanLabel() }}» با شما تماس می‌گیریم.</p>
+            </div>
+          } @else {
+            <form class="lp-form" [formGroup]="form" (ngSubmit)="submit()">
+              <label class="ui-field">
+                <span class="ui-label">نام و نام خانوادگی</span>
+                <input class="ui-input" type="text" formControlName="name" autocomplete="name" />
+                @if (form.controls.name.touched && form.controls.name.invalid) {
+                  <span class="text-xs font-medium text-rose-600">نام را کامل وارد کنید.</span>
+                }
+              </label>
+              <label class="ui-field">
+                <span class="ui-label">موبایل</span>
+                <input
+                  class="ui-input"
+                  type="tel"
+                  inputmode="tel"
+                  formControlName="mobile"
+                  placeholder="09123456789"
+                  autocomplete="tel"
+                  dir="ltr"
+                />
+                @if (form.controls.mobile.touched && form.controls.mobile.invalid) {
+                  <span class="text-xs font-medium text-rose-600">شماره باید ۱۱ رقم و با ۰۹ شروع شود.</span>
+                }
+              </label>
+              <label class="ui-field">
+                <span class="ui-label">نام ساختمان</span>
+                <input class="ui-input" type="text" formControlName="buildingName" />
+                @if (form.controls.buildingName.touched && form.controls.buildingName.invalid) {
+                  <span class="text-xs font-medium text-rose-600">نام ساختمان را وارد کنید.</span>
+                }
+              </label>
+              <label class="ui-field">
+                <span class="ui-label">پلن</span>
+                <select class="ui-input" formControlName="planId" (change)="selectedPlanId.set(form.controls.planId.value)">
+                  @for (plan of plans; track plan.id) {
+                    <option [value]="plan.id">{{ plan.label }} — {{ plan.priceLabel }} {{ plan.periodLabel }}</option>
+                  }
+                </select>
+              </label>
+              <label class="ui-field lp-form-span">
+                <span class="ui-label">توضیح (اختیاری)</span>
+                <textarea class="ui-input min-h-24 py-3" formControlName="note" rows="3"></textarea>
+              </label>
+              @if (error()) {
+                <p class="lp-form-span rounded-xl bg-rose-50 px-3 py-2.5 text-sm font-medium text-rose-700" role="alert">
+                  {{ error() }}
+                </p>
+              }
+              <div class="lp-form-span">
+                <button class="ui-btn-primary h-12 w-full text-base sm:w-auto sm:min-w-48" type="submit" [disabled]="loading()">
+                  <app-busy [on]="loading()" busyText="در حال ارسال...">ثبت درخواست</app-busy>
+                </button>
+              </div>
+            </form>
+          }
+        </div>
+      </div>
+    </section>
+
+    <section class="lp-section lp-faq">
+      <div class="lp-shell">
+        <div class="lp-section-head lp-section-head-center">
+          <h2>پرسش‌های کوتاه</h2>
+          <p>دو نکته‌ای که معمولاً پیش از خرید پرسیده می‌شود.</p>
+        </div>
+        <div class="lp-faq-list">
+          <article>
+            <h3>آیا درگاه پرداخت آنلاین دارد؟</h3>
+            <p>فعلاً درخواست خرید ثبت می‌شود و فعال‌سازی به‌صورت هماهنگ‌شده انجام می‌گیرد.</p>
+          </article>
+          <article>
+            <h3>ساکن هم می‌تواند وارد شود؟</h3>
+            <p>بله. مدیر، حسابدار، هیئت‌مدیره و ساکن هر کدام فقط بخش مربوط به خود را می‌بینند.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="lp-footer">
+    <div class="lp-shell lp-footer-inner">
+      <div class="flex items-center gap-3">
+        <app-brand-mark [onDark]="true" class="h-9 w-9" />
+        <div>
+          <p class="font-bold text-white">شارژبان</p>
+          <p class="text-sm text-slate-400">حسابداری شارژ ساختمان</p>
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-3 text-sm">
+        <a routerLink="/login">ورود</a>
+        <button type="button" (click)="scrollTo('plans')">پلن‌ها</button>
+        <button type="button" (click)="scrollTo('inquiry')">درخواست خرید</button>
+      </div>
+    </div>
+  </footer>
+</div>

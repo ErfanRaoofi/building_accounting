@@ -472,3 +472,17 @@ model Backup {
 
   @@index([createdAt])
 }
+
+model PurchaseInquiry {
+  id           String   @id @default(uuid())
+  name         String
+  mobile       String
+  buildingName String
+  planId       String
+  planLabel    String
+  note         String?
+  createdAt    DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([planId])
+}

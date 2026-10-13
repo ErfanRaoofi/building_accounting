@@ -28,6 +28,11 @@ export class Shell {
       items.push(
         { path: '/buildings', label: 'ساختمان‌ها', icon: 'M4 21V8l8-5 8 5v13M9 21v-7h6v7M4 21h16' },
         { path: '/backups', label: 'بک‌آپ', icon: 'M4 7h16v4H4zM4 15h16v4H4zM8 7V5h8v2M8 15v-2h8v2' },
+        {
+          path: '/purchase-inquiries',
+          label: 'درخواست خرید',
+          icon: 'M4 7h16v12H4zM8 11h8M8 15h5M9 7V5h6v2',
+        },
       );
     }
     if (this.auth.canSeeUnits()) {

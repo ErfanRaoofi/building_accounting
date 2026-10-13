@@ -12,6 +12,11 @@ import {
 
 export const appRoutes: Route[] = [
   {
+    path: '',
+    pathMatch: 'full',
+    loadComponent: () => import('./features/landing/landing').then((m) => m.Landing),
+  },
+  {
     path: 'login',
     canActivate: [guestGuard],
     loadComponent: () => import('./features/login/login').then((m) => m.Login),
@@ -56,7 +61,6 @@ export const appRoutes: Route[] = [
     canActivate: [authGuard, fiscalYearGuard],
     loadComponent: () => import('./layout/shell').then((m) => m.Shell),
     children: [
-      { path: '', pathMatch: 'full', loadComponent: () => import('./features/home/home-redirect').then((m) => m.HomeRedirect) },
       {
         path: 'dashboard',
         loadComponent: () => import('./features/dashboard/dashboard').then((m) => m.Dashboard),
@@ -70,6 +74,12 @@ export const appRoutes: Route[] = [
         path: 'backups',
         canActivate: [adminGuard],
         loadComponent: () => import('./features/backups/backups').then((m) => m.Backups),
+      },
+      {
+        path: 'purchase-inquiries',
+        canActivate: [adminGuard],
+        loadComponent: () =>
+          import('./features/purchase-inquiries/purchase-inquiries').then((m) => m.PurchaseInquiries),
       },
       {
         path: 'settings',
