@@ -1,8 +1,22 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import { PaymentsService } from './payments.service';
 import { CreatePaymentDto, UpdatePaymentDto } from './dto';
 import { CurrentUser, AuthUser } from '../common/decorators/current-user.decorator';
 import { parsePagination } from '../common/pagination';
+import { MAX_MEDIA_BYTES } from '../common/uploads';
 
 @Controller('payments')
 export class PaymentsController {
@@ -27,6 +41,26 @@ export class PaymentsController {
   @Patch(':id')
   update(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() dto: UpdatePaymentDto) {
     return this.payments.update(user, id, dto);
+  }
+
+  @Post(':id/proof-image')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: { fileSize: MAX_MEDIA_BYTES },
+    }),
+  )
+  uploadProof(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @UploadedFile() file?: { buffer: Buffer; mimetype: string; size: number },
+  ) {
+    return this.payments.uploadProof(user, id, file);
+  }
+
+  @Delete(':id/proof-image')
+  removeProof(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.payments.removeProof(user, id);
   }
 
   @Delete(':id')

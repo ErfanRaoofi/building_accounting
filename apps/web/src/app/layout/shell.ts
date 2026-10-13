@@ -21,7 +21,9 @@ export class Shell {
   menuOpen = signal(false);
   initial = computed(() => this.auth.user()?.name?.trim().charAt(0) || 'م');
   links = computed(() => {
-    const items: { path: string; label: string; icon: string }[] = [];
+    const items: { path: string; label: string; icon: string }[] = [
+      { path: '/dashboard', label: 'داشبورد', icon: 'M4 5h16v4H4zM4 11h10v8H4zM16 11h4v8h-4z' },
+    ];
     if (this.auth.isAdmin()) {
       items.push(
         { path: '/buildings', label: 'ساختمان‌ها', icon: 'M4 21V8l8-5 8 5v13M9 21v-7h6v7M4 21h16' },

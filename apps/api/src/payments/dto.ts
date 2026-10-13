@@ -11,6 +11,10 @@ export class CreatePaymentDto {
   @IsUUID()
   categoryId: string;
 
+  @IsOptional()
+  @IsUUID()
+  noticeId?: string;
+
   @IsDateString()
   date: string;
 

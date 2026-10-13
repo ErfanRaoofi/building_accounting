@@ -16,6 +16,8 @@ import { ReportsModule } from '../reports/reports.module';
 import { BackupsModule } from '../backups/backups.module';
 import { SignupRequestsModule } from '../signup-requests/signup-requests.module';
 import { PaymentRequestsModule } from '../payment-requests/payment-requests.module';
+import { MediaModule } from '../media/media.module';
+import { NoticesModule } from '../notices/notices.module';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { AppController } from './app.controller';
@@ -34,6 +36,8 @@ import { AppService } from './app.service';
     ChargesModule,
     ReceiptsModule,
     PaymentRequestsModule,
+    MediaModule,
+    NoticesModule,
     CategoriesModule,
     PaymentsModule,
     ReportsModule,

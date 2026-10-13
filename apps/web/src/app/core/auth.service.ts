@@ -87,16 +87,7 @@ export class AuthService {
   }
 
   homePath() {
-    if (this.isStaff()) {
-      return '/units';
-    }
-    if (this.hasRole('BOARD')) {
-      return '/reports/charges';
-    }
-    if (this.hasRole('RESIDENT')) {
-      return '/units';
-    }
-    return '/units';
+    return '/dashboard';
   }
 
   private persistSession(res: AuthSession) {

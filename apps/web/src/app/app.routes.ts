@@ -53,6 +53,10 @@ export const appRoutes: Route[] = [
     children: [
       { path: '', pathMatch: 'full', loadComponent: () => import('./features/home/home-redirect').then((m) => m.HomeRedirect) },
       {
+        path: 'dashboard',
+        loadComponent: () => import('./features/dashboard/dashboard').then((m) => m.Dashboard),
+      },
+      {
         path: 'buildings',
         canActivate: [adminGuard],
         loadComponent: () => import('./features/buildings/buildings').then((m) => m.Buildings),

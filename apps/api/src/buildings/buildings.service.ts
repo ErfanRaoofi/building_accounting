@@ -7,7 +7,7 @@ import { AuthUser } from '../common/decorators/current-user.decorator';
 import { AddBuildingMemberDto, CreateBuildingDto, UpdateBuildingDto, UpdateBuildingMemberDto } from './dto';
 import { jalaliToDate, lastJalaliDay, toJalali } from '../common/jalali';
 import { paginateQuery, type Pagination } from '../common/pagination';
-import { logoExtension, MAX_LOGO_BYTES, removeBuildingLogoFiles, saveBuildingLogo } from '../common/uploads';
+import { assertStoredImage, logoExtension, MAX_LOGO_BYTES, mediaUrl, storedBytes } from '../common/uploads';
 import { ASSIGNABLE_BY_MANAGER, MANAGER_ROLES, STAFF_ROLES, uniqueRoles } from '../common/roles';
 
 @Injectable()
@@ -222,13 +222,12 @@ export class BuildingsService {
     if (!building) {
       throw new NotFoundException('ساختمان یافت نشد');
     }
-    await removeBuildingLogoFiles(id);
     return this.prisma.building.delete({ where: { id } });
   }
 
   async uploadLogo(user: AuthUser, id: string, file?: { buffer: Buffer; mimetype: string; size: number }) {
     await this.access.assertRoles(user, id, STAFF_ROLES);
-    if (!file?.buffer?.length) {
+    if (!file || !file.buffer.length) {
       throw new BadRequestException('فایل لوگو ارسال نشده است');
     }
     if (!logoExtension(file.mimetype)) {
@@ -238,8 +237,14 @@ export class BuildingsService {
       throw new BadRequestException('حجم لوگو باید کمتر از ۲ مگابایت باشد');
     }
     try {
-      const logoUrl = await saveBuildingLogo(id, file);
-      return this.prisma.building.update({ where: { id }, data: { logoUrl } });
+      assertStoredImage(file);
+      return await this.prisma.$transaction(async (tx) => {
+        await tx.storedImage.deleteMany({ where: { buildingId: id } });
+        const image = await tx.storedImage.create({
+          data: { mime: file.mimetype, data: storedBytes(file.buffer), buildingId: id },
+        });
+        return tx.building.update({ where: { id }, data: { logoUrl: mediaUrl(image.id) } });
+      });
     } catch (err) {
       const code = err instanceof Error ? err.message : '';
       if (code === 'invalid-type' || code === 'invalid-png') {
@@ -251,8 +256,11 @@ export class BuildingsService {
 
   async removeLogo(user: AuthUser, id: string) {
     await this.access.assertRoles(user, id, STAFF_ROLES);
-    await removeBuildingLogoFiles(id);
-    return this.prisma.building.update({ where: { id }, data: { logoUrl: null } });
+    const [, building] = await this.prisma.$transaction([
+      this.prisma.storedImage.deleteMany({ where: { buildingId: id } }),
+      this.prisma.building.update({ where: { id }, data: { logoUrl: null } }),
+    ]);
+    return building;
   }
 
   private async assertAssignable(actor: AuthUser, buildingId: string, roles: BuildingRole[]) {

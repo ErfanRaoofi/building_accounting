@@ -74,6 +74,16 @@ enum PaymentRequestStatus {
   VOIDED
 }
 
+enum NoticeKind {
+  NOTICE
+  BILL
+}
+
+enum NoticeBillStatus {
+  UNPAID
+  PAID
+}
+
 model User {
   id               String           @id @default(uuid())
   username         String           @unique
@@ -92,6 +102,7 @@ model User {
   refreshTokens    RefreshToken[]
   submittedPaymentRequests PaymentRequest[] @relation("PaymentRequestSubmittedBy")
   reviewedPaymentRequests  PaymentRequest[] @relation("PaymentRequestReviewedBy")
+  notices                  Notice[]         @relation("NoticeCreatedBy")
 }
 
 model RefreshToken {
@@ -128,6 +139,8 @@ model Building {
   accesses           BuildingAccess[]
   signupRequests     SignupRequest[]
   paymentRequests    PaymentRequest[]
+  notices            Notice[]
+  logo               StoredImage?
 }
 
 model BuildingAccess {
@@ -182,6 +195,7 @@ model FiscalYear {
   receipts         Receipt[]
   payments         Payment[]
   paymentRequests  PaymentRequest[]
+  notices          Notice[]
 
   @@unique([buildingId, title])
 }
@@ -346,10 +360,49 @@ model PaymentRequest {
   reviewedBy    User?                @relation("PaymentRequestReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
   receipt          Receipt?             @relation(fields: [receiptId], references: [id], onDelete: SetNull)
   receiptPayment   ReceiptPayment?      @relation(fields: [receiptPaymentId], references: [id], onDelete: SetNull)
+  image            StoredImage?
 
   @@index([buildingId, status])
   @@index([unitId, createdAt])
   @@index([fiscalYearId, status])
+}
+
+model Notice {
+  id           String            @id @default(uuid())
+  buildingId   String
+  fiscalYearId String
+  kind         NoticeKind
+  title        String
+  description  String?
+  date         DateTime          @db.Date
+  amount       Decimal?          @db.Decimal(18, 0)
+  billStatus   NoticeBillStatus?
+  createdById  String
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  building     Building          @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  fiscalYear   FiscalYear        @relation(fields: [fiscalYearId], references: [id], onDelete: Cascade)
+  createdBy    User              @relation("NoticeCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  image        StoredImage?
+  payment      Payment?
+
+  @@index([buildingId, fiscalYearId, date])
+  @@index([buildingId, kind, billStatus])
+}
+
+model StoredImage {
+  id               String          @id @default(uuid())
+  mime             String
+  data             Bytes
+  createdAt        DateTime        @default(now())
+  buildingId       String?         @unique
+  paymentRequestId String?         @unique
+  noticeId         String?         @unique
+  paymentId        String?         @unique
+  building         Building?       @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  paymentRequest   PaymentRequest? @relation(fields: [paymentRequestId], references: [id], onDelete: Cascade)
+  notice           Notice?         @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+  payment          Payment?        @relation(fields: [paymentId], references: [id], onDelete: Cascade)
 }
 
 model ExpenseCategory {
@@ -371,6 +424,7 @@ model Payment {
   buildingId    String
   fiscalYearId  String
   categoryId    String
+  noticeId      String?         @unique
   number        String
   date          DateTime        @db.Date
   amount           Decimal         @db.Decimal(18, 0)
@@ -389,7 +443,9 @@ model Payment {
   building      Building        @relation(fields: [buildingId], references: [id], onDelete: Cascade)
   fiscalYear    FiscalYear      @relation(fields: [fiscalYearId], references: [id], onDelete: Cascade)
   category      ExpenseCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  notice        Notice?         @relation(fields: [noticeId], references: [id], onDelete: Restrict)
   createdBy     User            @relation("PaymentCreatedBy", fields: [createdById], references: [id])
+  proofImage    StoredImage?
 
   @@unique([buildingId, fiscalYearId, number])
   @@index([buildingId, fiscalYearId, date])

@@ -1,17 +1,24 @@
-import { mkdir, unlink, writeFile } from 'fs/promises';
+import { mkdir } from 'fs/promises';
 import { join } from 'path';
-import { randomUUID } from 'crypto';
 
 export const UPLOADS_ROOT = () => join(process.cwd(), 'uploads');
 export const LOGOS_DIR = () => join(UPLOADS_ROOT(), 'logos');
 export const PAYMENT_REQUESTS_DIR = () => join(UPLOADS_ROOT(), 'payment-requests');
 export const MAX_LOGO_BYTES = 2 * 1024 * 1024;
 export const MAX_PAYMENT_REQUEST_IMAGE_BYTES = 2 * 1024 * 1024;
+export const MAX_MEDIA_BYTES = 2 * 1024 * 1024;
 
 const MIME_EXT: Record<string, string> = {
   'image/png': 'png',
   'image/jpeg': 'jpg',
   'image/webp': 'webp',
+};
+
+const EXT_MIME: Record<string, string> = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  webp: 'image/webp',
 };
 
 export function logoExtension(mimetype: string) {
@@ -22,37 +29,20 @@ export function imageExtension(mimetype: string) {
   return MIME_EXT[mimetype];
 }
 
+export function mediaUrl(id: string) {
+  return `/api/media/${id}`;
+}
+
 export async function ensureUploadDirs() {
   await mkdir(LOGOS_DIR(), { recursive: true });
   await mkdir(PAYMENT_REQUESTS_DIR(), { recursive: true });
 }
 
-function isPng(buffer: Buffer) {
-  return buffer.length > 8 && buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47;
+export function storedBytes(buffer: Buffer) {
+  return Uint8Array.from(buffer);
 }
 
-export async function saveBuildingLogo(buildingId: string, file: { buffer: Buffer; mimetype: string }) {
-  const ext = logoExtension(file.mimetype);
-  if (!ext) {
-    throw new Error('invalid-type');
-  }
-  if (ext === 'png' && !isPng(file.buffer)) {
-    throw new Error('invalid-png');
-  }
-  await ensureUploadDirs();
-  await removeBuildingLogoFiles(buildingId);
-  const filename = `${buildingId}.${ext}`;
-  await writeFile(join(LOGOS_DIR(), filename), file.buffer);
-  return `/uploads/logos/${filename}`;
-}
-
-export async function removeBuildingLogoFiles(buildingId: string) {
-  await Promise.all(
-    Object.values(MIME_EXT).map((ext) => unlink(join(LOGOS_DIR(), `${buildingId}.${ext}`)).catch(() => undefined)),
-  );
-}
-
-export async function savePaymentRequestImage(file: { buffer: Buffer; mimetype: string }) {
+export function assertStoredImage(file: { buffer: Buffer; mimetype: string }) {
   const ext = imageExtension(file.mimetype);
   if (!ext) {
     throw new Error('invalid-type');
@@ -60,19 +50,30 @@ export async function savePaymentRequestImage(file: { buffer: Buffer; mimetype: 
   if (ext === 'png' && !isPng(file.buffer)) {
     throw new Error('invalid-png');
   }
-  await ensureUploadDirs();
-  const filename = `${randomUUID()}.${ext}`;
-  await writeFile(join(PAYMENT_REQUESTS_DIR(), filename), file.buffer);
-  return `/uploads/payment-requests/${filename}`;
 }
 
-export async function removePaymentRequestImage(imagePath: string) {
-  if (!imagePath.startsWith('/uploads/payment-requests/')) {
-    return;
+export function legacyUploadAbsolutePath(urlPath: string) {
+  const path = urlPath.split('?')[0];
+  if (path.startsWith('/uploads/logos/')) {
+    const filename = path.slice('/uploads/logos/'.length);
+    return safeFilename(filename) ? join(LOGOS_DIR(), filename) : null;
   }
-  const filename = imagePath.slice('/uploads/payment-requests/'.length);
-  if (!filename || filename.includes('/') || filename.includes('..')) {
-    return;
+  if (path.startsWith('/uploads/payment-requests/')) {
+    const filename = path.slice('/uploads/payment-requests/'.length);
+    return safeFilename(filename) ? join(PAYMENT_REQUESTS_DIR(), filename) : null;
   }
-  await unlink(join(PAYMENT_REQUESTS_DIR(), filename)).catch(() => undefined);
+  return null;
+}
+
+export function mimeFromFilename(filename: string) {
+  const ext = filename.split('.').pop()?.toLowerCase() || '';
+  return EXT_MIME[ext] || null;
+}
+
+function safeFilename(name: string) {
+  return !!name && !name.includes('/') && !name.includes('\\') && !name.includes('..');
+}
+
+function isPng(buffer: Buffer) {
+  return buffer.length > 8 && buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47;
 }

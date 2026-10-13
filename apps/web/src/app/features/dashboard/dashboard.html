@@ -1,0 +1,274 @@
+<section class="ui-page">
+  <div class="overflow-hidden rounded-3xl bg-ink-950 text-white shadow-sm">
+    <div class="flex flex-col gap-5 px-5 py-6 sm:flex-row sm:items-end sm:justify-between sm:px-7">
+      <div class="min-w-0">
+        <p class="text-xs font-medium tracking-wide text-brand-200">داشبورد ساختمان</p>
+        <h1 class="mt-2 truncate text-2xl font-bold sm:text-3xl">{{ ctx.building()?.name || 'ساختمان' }}</h1>
+        <p class="mt-2 text-sm text-slate-300">سال مالی {{ ctx.fiscalYear()?.title || '—' }} · اطلاعیه‌ها و قبض‌ها برای مدیریت و ساکنین</p>
+      </div>
+      @if (isStaff()) {
+        <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <button class="ui-btn-ghost w-full border-white/15 bg-white/5 text-white hover:bg-white/10 sm:w-auto" type="button" (click)="openNoticeForm('NOTICE')">اطلاعیه جدید</button>
+          <button class="ui-btn-primary w-full sm:w-auto" type="button" (click)="openNoticeForm('BILL')">بارگذاری قبض</button>
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="grid gap-3 sm:grid-cols-3">
+    <button class="ui-card text-start transition hover:border-amber-200 hover:shadow-md" type="button" (click)="setFilter('unpaid')">
+      <p class="text-sm text-slate-500">قبض پرداخت‌نشده</p>
+      <p class="mt-2 text-3xl font-bold text-amber-700">{{ summary()?.unpaidBills ?? '—' }}</p>
+      <p class="ui-money mt-1 text-sm text-slate-600">{{ formatMoney(summary()?.unpaidAmount || 0) }}</p>
+    </button>
+    <button class="ui-card text-start transition hover:border-emerald-200 hover:shadow-md" type="button" (click)="setFilter('paid')">
+      <p class="text-sm text-slate-500">قبض پرداخت‌شده</p>
+      <p class="mt-2 text-3xl font-bold text-emerald-700">{{ summary()?.paidBills ?? '—' }}</p>
+      <p class="mt-1 text-sm text-slate-500">در همین سال مالی</p>
+    </button>
+    <button class="ui-card text-start transition hover:border-brand-200 hover:shadow-md" type="button" (click)="setFilter('notice')">
+      <p class="text-sm text-slate-500">اطلاعیه</p>
+      <p class="mt-2 text-3xl font-bold text-brand-800">{{ summary()?.notices ?? '—' }}</p>
+      <p class="mt-1 text-sm text-slate-500">برای همه ساکنین</p>
+    </button>
+  </div>
+
+  @if (shortcuts().length) {
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      @for (item of shortcuts(); track item.path) {
+        <a class="group rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm transition hover:border-brand-200 hover:shadow-md" [routerLink]="item.path">
+          <p class="font-semibold text-slate-900 group-hover:text-brand-800">{{ item.label }}</p>
+          <p class="mt-1 text-sm text-slate-500">{{ item.hint }}</p>
+        </a>
+      }
+    </div>
+  }
+
+  <div class="flex gap-2 overflow-x-auto pb-1">
+    @for (item of filters; track item.id) {
+      <button
+        class="h-9 shrink-0 rounded-full px-4 text-sm font-medium transition"
+        [class.bg-brand-700]="filter() === item.id"
+        [class.text-white]="filter() === item.id"
+        [class.bg-white]="filter() !== item.id"
+        [class.text-slate-600]="filter() !== item.id"
+        [class.ring-1]="filter() !== item.id"
+        [class.ring-slate-200]="filter() !== item.id"
+        type="button"
+        (click)="setFilter(item.id)"
+      >
+        {{ item.label }}
+      </button>
+    }
+  </div>
+
+  @if (loading()) {
+    <app-skeleton kind="list" />
+  } @else if (!rows().length) {
+    <div class="ui-empty">
+      <p>
+        @if (filter() === 'all') {
+          هنوز اطلاعیه یا قبضی ثبت نشده است.
+        } @else {
+          موردی برای این فیلتر نیست.
+        }
+      </p>
+      @if (isStaff() && filter() === 'all') {
+        <button class="ui-btn-primary mt-4" type="button" (click)="openNoticeForm('BILL')">بارگذاری قبض</button>
+      }
+    </div>
+  } @else {
+    <div class="grid gap-4 md:grid-cols-2">
+      @for (row of rows(); track row.id) {
+        <article class="flex flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+          <button
+            class="relative flex h-48 items-center justify-center bg-slate-100"
+            type="button"
+            [disabled]="!row.imageUrl"
+            (click)="openPreview(row.imageUrl, row.title)"
+          >
+            @if (row.imageUrl) {
+              <img class="h-full w-full object-cover" [src]="row.imageUrl" [alt]="row.title" />
+            } @else {
+              <span class="text-sm font-medium text-slate-400">{{ kindLabel(row.kind) }}</span>
+            }
+            <span
+              class="absolute top-3 right-3 rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm"
+              [class.bg-amber-50]="row.kind === 'BILL' && row.billStatus === 'UNPAID'"
+              [class.text-amber-800]="row.kind === 'BILL' && row.billStatus === 'UNPAID'"
+              [class.bg-emerald-50]="row.kind === 'BILL' && row.billStatus === 'PAID'"
+              [class.text-emerald-800]="row.kind === 'BILL' && row.billStatus === 'PAID'"
+              [class.bg-white]="row.kind !== 'BILL'"
+              [class.text-slate-700]="row.kind !== 'BILL'"
+            >
+              {{ row.kind === 'BILL' ? statusLabel(row) : kindLabel(row.kind) }}
+            </span>
+          </button>
+          <div class="flex flex-1 flex-col gap-3 p-4">
+            <div class="min-w-0">
+              <p class="text-xs font-medium text-slate-500">{{ kindLabel(row.kind) }} · {{ formatJalali(row.date) }}</p>
+              <h2 class="mt-1 text-lg font-bold text-slate-900">{{ row.title }}</h2>
+              @if (row.description) {
+                <p class="mt-1 line-clamp-2 text-sm text-slate-600">{{ row.description }}</p>
+              }
+              <p class="mt-1 text-xs text-slate-400">{{ row.createdBy?.name || '—' }}</p>
+            </div>
+            @if (row.amount != null) {
+              <p class="ui-money text-2xl font-bold text-slate-900">{{ formatMoney(row.amount) }}</p>
+            }
+            <div class="mt-auto flex flex-wrap items-center gap-2">
+              @if (row.billStatus === 'PAID' && row.proofImageUrl) {
+                <button class="ui-btn-ghost h-9 px-3" type="button" (click)="openPreview(row.proofImageUrl, 'رسید ' + row.title)">رسید پرداخت</button>
+              }
+              @if (isStaff() && row.kind === 'BILL' && row.billStatus === 'UNPAID') {
+                <button class="ui-btn-primary h-9 px-3" type="button" (click)="openPay(row)">ثبت پرداخت</button>
+              }
+              @if (isStaff() && (row.kind !== 'BILL' || row.billStatus === 'UNPAID')) {
+                <button class="ui-btn-danger h-9 px-3" type="button" [disabled]="removingId() === row.id" (click)="removeNotice(row)">حذف</button>
+              }
+            </div>
+          </div>
+        </article>
+      }
+    </div>
+    <app-pager [(page)]="page" [(size)]="pageSize" [total]="total()" (changed)="loadList()" />
+  }
+
+  @if (preview(); as shot) {
+    <div class="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/75 p-4" (click)="closePreview()">
+      <div class="max-h-[90dvh] w-full max-w-3xl overflow-hidden rounded-3xl bg-white shadow-2xl" (click)="$event.stopPropagation()">
+        <div class="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+          <p class="truncate font-semibold text-slate-900">{{ shot.title }}</p>
+          <button class="ui-btn-ghost h-9 px-3" type="button" (click)="closePreview()">بستن</button>
+        </div>
+        <img class="max-h-[75dvh] w-full bg-slate-50 object-contain" [src]="shot.url" [alt]="shot.title" />
+      </div>
+    </div>
+  }
+
+  <app-form-rail
+    [(open)]="noticeOpen"
+    [title]="noticeForm.controls.kind.value === 'BILL' ? 'بارگذاری قبض' : 'اطلاعیه جدید'"
+    [subtitle]="noticeForm.controls.kind.value === 'BILL' ? 'قبض یک‌بار اینجا ثبت می‌شود و بعد از پرداخت فقط رسید اضافه می‌شود' : 'برای اطلاع‌رسانی به ساکنین'"
+  >
+    <form class="flex min-h-0 flex-1 flex-col" [formGroup]="noticeForm" (ngSubmit)="saveNotice()">
+      <div class="ui-form-scroll">
+        <label class="ui-field">
+          <span class="ui-label">نوع</span>
+          <select class="ui-input" formControlName="kind">
+            <option value="BILL">قبض</option>
+            <option value="NOTICE">اطلاعیه</option>
+          </select>
+        </label>
+        <label class="ui-field">
+          <span class="ui-label">عنوان</span>
+          <input class="ui-input" formControlName="title" placeholder="قبض برق فروردین / قطعی آب" />
+        </label>
+        <label class="ui-field">
+          <span class="ui-label">تاریخ</span>
+          <app-jalali-datepicker formControlName="date" />
+        </label>
+        @if (noticeForm.controls.kind.value === 'BILL') {
+          <label class="ui-field">
+            <span class="ui-label">مبلغ (ریال) — اختیاری</span>
+            <app-money-input formControlName="amount" />
+          </label>
+        }
+        <label class="ui-field">
+          <span class="ui-label">توضیح</span>
+          <input class="ui-input" formControlName="description" />
+        </label>
+        <div class="ui-field">
+          <span class="ui-label">{{ noticeForm.controls.kind.value === 'BILL' ? 'تصویر قبض (اختیاری)' : 'تصویر (اختیاری)' }}</span>
+          <button class="ui-btn-ghost" type="button" (click)="galleryPicker.click()">انتخاب تصویر</button>
+          <input #galleryPicker class="sr-only" type="file" accept="image/*" (change)="pickNoticeImage($event)" />
+          @if (noticePreview(); as preview) {
+            <img class="mt-2 max-h-48 w-full rounded-lg border border-slate-200 bg-slate-50 object-contain" [src]="preview" alt="پیش‌نمایش" />
+            <button class="ui-btn-ghost mt-2 h-9 px-3" type="button" (click)="clearNoticeImage()">حذف تصویر</button>
+          }
+        </div>
+      </div>
+      <div class="ui-form-actions">
+        <button class="ui-btn-ghost flex-1" type="button" (click)="noticeOpen.set(false)">انصراف</button>
+        <button class="ui-btn-primary flex-1" type="submit" [disabled]="saving()">
+          <app-busy [on]="saving()" busyText="در حال ذخیره...">ثبت</app-busy>
+        </button>
+      </div>
+    </form>
+  </app-form-rail>
+
+  <app-form-rail
+    [(open)]="payOpen"
+    title="ثبت پرداخت قبض"
+    subtitle="رسید پرداخت اختیاری است و می‌توانید بعداً هم اضافه کنید"
+  >
+    @if (payingBill(); as bill) {
+      <form class="flex min-h-0 flex-1 flex-col" [formGroup]="payForm" (ngSubmit)="savePayment()">
+        <div class="ui-form-scroll">
+          <div class="rounded-xl bg-slate-50 p-3 ring-1 ring-slate-200">
+            <p class="font-semibold text-slate-900">{{ bill.title }}</p>
+            <p class="ui-muted mt-1">{{ formatJalali(bill.date) }}</p>
+            @if (bill.imageUrl) {
+              <a class="mt-3 block overflow-hidden rounded-lg bg-white ring-1 ring-slate-200" [href]="bill.imageUrl" target="_blank" rel="noopener">
+                <img class="max-h-40 w-full object-contain" [src]="bill.imageUrl" [alt]="bill.title" />
+              </a>
+            }
+          </div>
+          <label class="ui-field">
+            <span class="ui-label">سرفصل</span>
+            <select class="ui-input" formControlName="categoryId">
+              @for (c of categories(); track c.id) {
+                <option [value]="c.id">{{ categoryLabel(c) }}</option>
+              }
+            </select>
+          </label>
+          <label class="ui-field">
+            <span class="ui-label">تاریخ پرداخت</span>
+            <app-jalali-datepicker formControlName="date" />
+          </label>
+          <label class="ui-field">
+            <span class="ui-label">مبلغ (ریال)</span>
+            <app-money-input formControlName="amount" />
+          </label>
+          <label class="ui-field">
+            <span class="ui-label">روش پرداخت</span>
+            <select class="ui-input" formControlName="paymentMethod">
+              @for (item of paymentMethods; track item.value) {
+                <option [value]="item.value">{{ item.label }}</option>
+              }
+            </select>
+          </label>
+          <label class="ui-field">
+            <span class="ui-label">ذینفع</span>
+            <input class="ui-input" formControlName="payee" />
+          </label>
+          <label class="ui-field">
+            <span class="ui-label">شرح</span>
+            <input class="ui-input" formControlName="description" />
+          </label>
+          <label class="ui-field">
+            <span class="ui-label">شماره پیگیری</span>
+            <input class="ui-input" dir="ltr" formControlName="trackingNumber" />
+          </label>
+          <div class="ui-field">
+            <span class="ui-label">تصویر رسید پرداخت (اختیاری)</span>
+            <button class="ui-btn-ghost" type="button" (click)="proofPicker.click()">انتخاب رسید</button>
+            <input #proofPicker class="sr-only" type="file" accept="image/*" (change)="pickProofImage($event)" />
+            @if (proofPreview(); as preview) {
+              <img class="mt-2 max-h-48 w-full rounded-lg border border-slate-200 bg-slate-50 object-contain" [src]="preview" alt="رسید" />
+              <button class="ui-btn-ghost mt-2 h-9 px-3" type="button" (click)="clearProofImage()">حذف رسید</button>
+            }
+          </div>
+        </div>
+        <div class="ui-form-actions">
+          <button class="ui-btn-ghost flex-1" type="button" (click)="payOpen.set(false)">انصراف</button>
+          <button class="ui-btn-primary flex-1" type="submit" [disabled]="paying()">
+            <app-busy [on]="paying()" busyText="در حال ثبت...">ثبت پرداخت</app-busy>
+          </button>
+        </div>
+      </form>
+    }
+  </app-form-rail>
+
+  <app-image-cropper (cropped)="onCropped($event)" />
+</section>

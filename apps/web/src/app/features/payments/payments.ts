@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal, viewChild } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { ContextService } from '../../core/context.service';
@@ -16,10 +16,11 @@ import { FormModal } from '../../shared/form-modal';
 import { IconAction } from '../../shared/icon-action';
 import { MoneyInput } from '../../shared/money-input';
 import { JalaliDatepicker } from '../../shared/jalali-datepicker';
+import { ImageCropper } from '../../shared/image-cropper';
 
 @Component({
   selector: 'app-payments',
-  imports: [ReactiveFormsModule, Pager, Skeleton, Busy, FormRail, FormModal, IconAction, MoneyInput, JalaliDatepicker],
+  imports: [ReactiveFormsModule, Pager, Skeleton, Busy, FormRail, FormModal, IconAction, MoneyInput, JalaliDatepicker, ImageCropper],
   templateUrl: './payments.html',
 })
 export class Payments {
@@ -27,6 +28,7 @@ export class Payments {
   private fb = inject(FormBuilder);
   private toast = inject(ToastService);
   ctx = inject(ContextService);
+  cropper = viewChild(ImageCropper);
   rows = signal<any[]>([]);
   total = signal(0);
   page = signal(1);
@@ -39,6 +41,8 @@ export class Payments {
   formOpen = signal(false);
   categoryOpen = signal(false);
   editingId = signal<string | null>(null);
+  editingRow = signal<any | null>(null);
+  savingProof = signal(false);
   formatMoney = formatMoney;
   paymentMethods = PAYMENT_METHOD_OPTIONS;
   formatJalali = formatJalali;
@@ -101,6 +105,21 @@ export class Payments {
     return c.parent ? `${c.parent.name} / ${c.name}` : c.name;
   }
 
+  isBillPayment(row: any) {
+    return !!row?.noticeId || row?.notice?.kind === 'BILL';
+  }
+
+  billTitle(row: any) {
+    return row?.notice?.title?.trim() || '';
+  }
+
+  paymentSummary(row: any) {
+    if (this.isBillPayment(row) && this.billTitle(row)) {
+      return `قبض: ${this.billTitle(row)}`;
+    }
+    return row?.description || row?.payee || 'بدون شرح';
+  }
+
   blankForm() {
     return {
       categoryId: this.categories()[0]?.id || '',
@@ -123,12 +142,14 @@ export class Payments {
 
   openForm() {
     this.editingId.set(null);
+    this.editingRow.set(null);
     this.form.reset(this.blankForm());
     this.formOpen.set(true);
   }
 
   openEdit(row: any) {
     this.editingId.set(row.id);
+    this.editingRow.set(row);
     this.form.patchValue({
       categoryId: row.categoryId,
       date: new Date(row.date),
@@ -147,6 +168,52 @@ export class Payments {
     this.formOpen.set(true);
   }
 
+  pickProof(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) {
+      return;
+    }
+    this.cropper()?.pick(file);
+  }
+
+  onProofCropped(blob: Blob) {
+    const id = this.editingId();
+    if (!id || this.savingProof()) {
+      return;
+    }
+    if (blob.size > 2 * 1024 * 1024) {
+      this.toast.show('حجم تصویر بعد از کوچک‌سازی هنوز زیاد است');
+      return;
+    }
+    const body = new FormData();
+    body.set('file', new File([blob], `proof-${Date.now()}.jpg`, { type: 'image/jpeg' }));
+    withBusy(this.savingProof, this.http.post<any>(`/api/payments/${id}/proof-image`, body)).subscribe({
+      next: (row) => {
+        this.editingRow.set(row);
+        this.loadList();
+        this.toast.show('رسید پرداخت ذخیره شد');
+      },
+      error: (err) => this.toast.show(err.error?.message || 'آپلود رسید ناموفق بود'),
+    });
+  }
+
+  removeProof() {
+    const id = this.editingId();
+    if (!id || this.savingProof()) {
+      return;
+    }
+    withBusy(this.savingProof, this.http.delete<any>(`/api/payments/${id}/proof-image`)).subscribe({
+      next: (row) => {
+        this.editingRow.set(row);
+        this.loadList();
+        this.toast.show('رسید حذف شد');
+      },
+      error: (err) => this.toast.show(err.error?.message || 'حذف رسید ناموفق بود'),
+    });
+  }
+
   remove(row: any) {
     if (this.removingId()) {
       return;
@@ -161,6 +228,7 @@ export class Payments {
         if (this.editingId() === row.id) {
           this.formOpen.set(false);
           this.editingId.set(null);
+          this.editingRow.set(null);
         }
         this.loadList();
         this.toast.show('پرداخت حذف شد');
@@ -231,6 +299,7 @@ export class Payments {
         if (id) {
           this.formOpen.set(false);
           this.editingId.set(null);
+          this.editingRow.set(null);
           this.loadList();
           this.toast.show('پرداخت ویرایش شد');
         } else {

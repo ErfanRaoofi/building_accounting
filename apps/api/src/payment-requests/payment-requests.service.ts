@@ -11,12 +11,7 @@ import { AuthUser } from '../common/decorators/current-user.decorator';
 import { money } from '../common/jalali';
 import { paginateQuery, type Pagination } from '../common/pagination';
 import { RESIDENT_ROLES, STAFF_ROLES } from '../common/roles';
-import {
-  imageExtension,
-  MAX_PAYMENT_REQUEST_IMAGE_BYTES,
-  removePaymentRequestImage,
-  savePaymentRequestImage,
-} from '../common/uploads';
+import { assertStoredImage, imageExtension, MAX_PAYMENT_REQUEST_IMAGE_BYTES, mediaUrl, storedBytes } from '../common/uploads';
 import { ReceiptsService } from '../receipts/receipts.service';
 import { CreatePaymentRequestDto, RejectPaymentRequestDto } from './dto';
 
@@ -77,7 +72,7 @@ export class PaymentRequestsService {
       throw new BadRequestException('سال مالی متعلق به این ساختمان نیست');
     }
     await this.assertResidentOfUnit(user, dto.unitId, dto.buildingId);
-    if (!file?.buffer?.length) {
+    if (!file || !file.buffer.length) {
       throw new BadRequestException('تصویر فیش الزامی است');
     }
     if (file.size > MAX_PAYMENT_REQUEST_IMAGE_BYTES) {
@@ -91,9 +86,8 @@ export class PaymentRequestsService {
       throw new BadRequestException('مبلغ باید بیشتر از صفر باشد');
     }
 
-    let imagePath: string;
     try {
-      imagePath = await savePaymentRequestImage(file);
+      assertStoredImage(file);
     } catch (err: any) {
       if (err?.message === 'invalid-type' || err?.message === 'invalid-png') {
         throw new BadRequestException('فرمت تصویر مجاز نیست');
@@ -101,8 +95,11 @@ export class PaymentRequestsService {
       throw err;
     }
 
-    try {
-      const created = await this.prisma.paymentRequest.create({
+    const created = await this.prisma.$transaction(async (tx) => {
+      const image = await tx.storedImage.create({
+        data: { mime: file.mimetype, data: storedBytes(file.buffer) },
+      });
+      const request = await tx.paymentRequest.create({
         data: {
           buildingId: dto.buildingId,
           fiscalYearId: dto.fiscalYearId,
@@ -111,16 +108,18 @@ export class PaymentRequestsService {
           date: new Date(dto.date),
           paymentMethod: dto.paymentMethod || PaymentMethod.TRANSFER,
           description: dto.description?.trim() || null,
-          imagePath,
+          imagePath: mediaUrl(image.id),
           submittedById: user.id,
         },
         include: INCLUDE,
       });
-      return this.map(created);
-    } catch (err) {
-      await removePaymentRequestImage(imagePath);
-      throw err;
-    }
+      await tx.storedImage.update({
+        where: { id: image.id },
+        data: { paymentRequestId: request.id },
+      });
+      return request;
+    });
+    return this.map(created);
   }
 
   async approve(user: AuthUser, id: string) {
